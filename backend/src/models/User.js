@@ -9,18 +9,29 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true, unique: true },
     profilePhoto: { type: String }, // Cloud storage link
     role: { type: String, enum: ["passenger", "captain", "both"], default: "passenger" },
-    isVerified: { type: Boolean, default: false }, // For user verification (e.g., OTP or ID check)
+    isVerified: { type: Boolean, default: false }, // OTP or ID verification
     rating: { type: Number, default: 0 }, // Average rating
-    reviews: [{ userId: mongoose.Schema.Types.ObjectId, review: String, rating: Number }], // User reviews
-    vehicle: {
-      type: {
-        model: String,
-        numberPlate: String,
-        seats: Number,
+    
+    reviews: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        review: { type: String, required: true },
+        rating: { type: Number, min: 1, max: 5, required: true },
+        createdAt: { type: Date, default: Date.now }, // Timestamp for reviews
       },
-      default: null,
+    ],
+
+    vehicle: {
+      model: { type: String },
+      numberPlate: { type: String },
+      seats: { type: Number, min: 1 },
     },
+
     activeRides: [{ type: mongoose.Schema.Types.ObjectId, ref: "Ride" }], // Active rides if Captain
+    socketId: { type: String, default: null }, // For real-time updates
+
+    otp: { type: String, default: null },
+    otpExpires: { type: Date, default: null, index: { expires: "5m" } }, // Auto-delete OTP after 5 min
   },
   { timestamps: true }
 );

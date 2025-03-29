@@ -1,10 +1,13 @@
 const express = require("express");
 const dotenv = require("dotenv");
+dotenv.config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 
-dotenv.config();
+const mapRoutes = require("./routes/mapRoutes");
+const userRoutes = require("./routes/userRoutes");
+
 connectDB();
 
 const app = express();
@@ -13,7 +16,9 @@ app.use(express.json());
 app.use(cookieParser()); // Enable reading cookies
 
 // Routes
-app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/maps", mapRoutes);
+app.use("/api/users", userRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("Ride Finder API is running...");

@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["passenger", "captain", "both"], default: "passenger" },
     isVerified: { type: Boolean, default: false }, // OTP or ID verification
     rating: { type: Number, default: 0 }, // Average rating
-    
+
     reviews: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema(
     ],
 
     vehicle: {
+      vehicleType: {
+        type: String,
+        enum: ['car', 'Bike', 'auto'],
+      },
       model: { type: String },
       numberPlate: { type: String },
       seats: { type: Number, min: 1 },

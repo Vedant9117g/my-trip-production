@@ -2,11 +2,7 @@ const axios = require("axios");
 
 const BASE_URL = "https://api.openrouteservice.org";
 const apiKey = process.env.ORS_API_KEY;
-console.log("ORS_API_KEY from .env:", process.env.ORS_API_KEY);
-if (!apiKey) {
-    console.error("ORS_API_KEY is not defined in the environment variables or hardcoded");
-    throw new Error("Missing ORS_API_KEY");
-  }
+
 // Generic function to fetch data from ORS
 const fetchFromORS = async (url, method = "GET", body = null) => {
   try {

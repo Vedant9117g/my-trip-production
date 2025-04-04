@@ -5,6 +5,8 @@ import Signup from "./pages/Signup";
 import MainLayout from "./layout/MainLayout";
 import { ThemeProvider } from "./components/ThemeProvider";
 import HeroSection from "./pages/student/HeroSection";
+import Profile from "./pages/Profile";
+import { useLoadUserQuery } from "./features/api/authApi";
 
 const appRouter = createBrowserRouter([
   {
@@ -23,11 +25,21 @@ const appRouter = createBrowserRouter([
         path: "signup",
         element: <Signup />,
       },
+      {
+        path: "profile",
+        element: <Profile />,
+      },
     ],
   },
 ]);
 
 function App() {
+  const { isLoading } = useLoadUserQuery(); // Load user on app initialization
+
+  if (isLoading) {
+    return <h1 className="text-center text-xl">Loading...</h1>;
+  }
+
   return (
     <ThemeProvider>
       <RouterProvider router={appRouter} />

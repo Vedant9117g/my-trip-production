@@ -17,6 +17,7 @@ const Navbar = () => {
     try {
       await logoutUser().unwrap();
       dispatch(userLoggedOut()); // Clear user from Redux
+      localStorage.removeItem("authToken"); // Remove token from localStorage
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
@@ -32,8 +33,17 @@ const Navbar = () => {
       <div className="flex items-center gap-4">
         {user ? (
           <>
+            <Link
+              to="/profile"
+              className="text-gray-900 dark:text-white hover:underline"
+            >
+              Profile
+            </Link>
             <span className="text-gray-900 dark:text-white">Welcome, {user.name}</span>
-            <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-md">
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+            >
               Logout
             </button>
           </>
@@ -52,7 +62,11 @@ const Navbar = () => {
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="p-2 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
         >
-          {theme === "dark" ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5 text-blue-500" />}
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5 text-yellow-500" />
+          ) : (
+            <Moon className="h-5 w-5 text-blue-500" />
+          )}
         </button>
       </div>
     </nav>

@@ -11,7 +11,10 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["passenger", "captain", "both"], default: "passenger" },
     isVerified: { type: Boolean, default: false }, // OTP or ID verification
     rating: { type: Number, default: 0 }, // Average rating
-
+    photoUrl: {
+      type: String,
+      default: ""
+    },
     reviews: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

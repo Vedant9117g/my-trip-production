@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { uploadMedia, deleteMediaFromCloudinary } = require("../utils/cloudinary");
 
 // Generate JWT Token
 const generateToken = (user) => {
@@ -91,38 +92,94 @@ const logout = (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
-    try {
-      console.log("User from req:", req.user); // Debugging log
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized, user not found" });
-      }
-  
-      res.json(req.user);
-    } catch (error) {
-      console.error("Profile fetch error:", error);
-      res.status(500).json({ message: error.message });
+  try {
+    // Use the user object attached by the isAuthenticated middleware
+    const user = req.user;
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Profile not found",
+        success: false,
+      });
     }
-  };
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load user",
+    });
+  }
+};
   
 
 // Update profile
 const updateProfile = async (req, res) => {
   try {
+    // Find the user by ID from the authenticated request
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (req.body.name) user.name = req.body.name;
-    if (req.body.phone) user.phone = req.body.phone;
-    if (req.file) user.profilePhoto = req.file.path;
-    if (req.body.role) {
-      user.role = req.body.role;
-      user.vehicle = req.body.role === "captain" ? req.body.vehicle : null;
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
+    // Update name if provided
+    if (req.body.name) {
+      user.name = req.body.name;
+    }
+
+    // Update phone if provided
+    if (req.body.phone) {
+      user.phone = req.body.phone;
+    }
+
+    // Update role and vehicle if provided
+    if (req.body.role) {
+      user.role = req.body.role;
+
+      // Parse vehicle field if provided
+      if (req.body.vehicle) {
+        try {
+          user.vehicle = JSON.parse(req.body.vehicle); // Parse the JSON string into an object
+        } catch (error) {
+          return res.status(400).json({ message: "Invalid vehicle data format" });
+        }
+      } else {
+        user.vehicle = null; // Clear vehicle if role is not "captain"
+      }
+    }
+
+    // Handle profile photo update
+    if (req.file) {
+      // Delete the old profile photo from Cloudinary if it exists
+      if (user.profilePhoto) {
+        const publicId = user.profilePhoto.split("/").pop().split(".")[0]; // Extract public ID
+        try {
+          await deleteMediaFromCloudinary(publicId);
+        } catch (error) {
+          console.error("Failed to delete old profile photo from Cloudinary:", error);
+        }
+      }
+
+      // Upload the new profile photo to Cloudinary
+      const cloudResponse = await uploadMedia(req.file.path);
+      user.profilePhoto = cloudResponse.secure_url; // Save the Cloudinary URL
+    }
+
+    // Save the updated user
     await user.save();
-    res.json({ message: "Profile updated successfully", user });
+
+    // Return the updated user profile
+    res.json({
+      message: "Profile updated successfully",
+      user,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Failed to update profile" });
   }
 };
 

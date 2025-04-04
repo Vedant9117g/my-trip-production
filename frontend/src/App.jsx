@@ -1,9 +1,38 @@
-import React from 'react';
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import "./App.css";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import MainLayout from "./layout/MainLayout";
+import { ThemeProvider } from "./components/ThemeProvider";
+import HeroSection from "./pages/student/HeroSection";
 
-export default function App() {
+const appRouter = createBrowserRouter([
+  {
+    path: "/",
+    element: <MainLayout />,
+    children: [
+      {
+        path: "/",
+        element: <HeroSection />,
+      },
+      {
+        path: "login",
+        element: <Login />,
+      },
+      {
+        path: "signup",
+        element: <Signup />,
+      },
+    ],
+  },
+]);
+
+function App() {
   return (
-    <div className="min-h-screen bg-blue-100 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-green-500">Tailwind CSS is Working!</h1>
-    </div>
+    <ThemeProvider>
+      <RouterProvider router={appRouter} />
+    </ThemeProvider>
   );
 }
+
+export default App;

@@ -140,15 +140,20 @@ const updateProfile = async (req, res) => {
     if (req.body.role) {
       user.role = req.body.role;
 
-      // Parse vehicle field if provided
-      if (req.body.vehicle) {
-        try {
-          user.vehicle = JSON.parse(req.body.vehicle); // Parse the JSON string into an object
-        } catch (error) {
-          return res.status(400).json({ message: "Invalid vehicle data format" });
+      // Handle vehicle field only if the role is "captain"
+      if (req.body.role === "captain") {
+        if (req.body.vehicle) {
+          try {
+            user.vehicle = JSON.parse(req.body.vehicle); // Parse the JSON string into an object
+          } catch (error) {
+            return res.status(400).json({ message: "Invalid vehicle data format" });
+          }
+        } else {
+          return res.status(400).json({ message: "Vehicle details are required for captains" });
         }
       } else {
-        user.vehicle = null; // Clear vehicle if role is not "captain"
+        // Clear the vehicle field if the role is not "captain"
+        user.vehicle = null;
       }
     }
 

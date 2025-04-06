@@ -4,9 +4,11 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import MainLayout from "./layout/MainLayout";
 import { ThemeProvider } from "./components/ThemeProvider";
-import HeroSection from "./pages/student/HeroSection";
 import Profile from "./pages/Profile";
 import { useLoadUserQuery } from "./features/api/authApi";
+import Home from "./pages/Home";
+import InstantRide from "./pages/InstantRide";
+import ScheduledRide from "./pages/ScheduledRide";
 
 const appRouter = createBrowserRouter([
   {
@@ -15,7 +17,7 @@ const appRouter = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <HeroSection />,
+        element: <Home />,
       },
       {
         path: "login",
@@ -28,6 +30,14 @@ const appRouter = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
+      },
+      {
+        path: "instant-ride",
+        element: <InstantRide />, // Add this component
+      },
+      {
+        path: "scheduled-ride",
+        element: <ScheduledRide />, // Add this component
       },
     ],
   },

@@ -33,12 +33,17 @@ const Navbar = () => {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <Link
-              to="/profile"
-              className="text-gray-900 dark:text-white hover:underline"
-            >
-              Profile
+            <Link to="/profile" className="flex flex-col items-center text-gray-900 dark:text-white hover:underline">
+              <div className="h-10 w-10 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600">
+                <img
+                  src={user?.profilePhoto || "https://github.com/shadcn.png"}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <span className="text-sm mt-1">Profile</span>
             </Link>
+
             <span className="text-gray-900 dark:text-white">Welcome, {user.name}</span>
             <button
               onClick={handleLogout}

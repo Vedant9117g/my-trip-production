@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema(
       numberPlate: { type: String },
       seats: { type: Number, min: 1 },
     },
+    bookedRides: [{ type: mongoose.Schema.Types.ObjectId, ref: "Ride" }],
 
     activeRides: [{ type: mongoose.Schema.Types.ObjectId, ref: "Ride" }], // Active rides if Captain
     socketId: { type: String, default: null }, // For real-time updates

@@ -17,7 +17,7 @@ const app = express();
 const server = http.createServer(app);
 const io = setupSocket(server); // Initialize Socket.io
 
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: "http://localhost:5174", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 

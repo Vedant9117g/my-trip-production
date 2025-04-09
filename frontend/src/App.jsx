@@ -36,7 +36,7 @@ const appRouter = createBrowserRouter([
         element: <InstantRide />, // Add this component
       },
       {
-        path: "scheduled-ride",
+        path: "scheduled-rides",
         element: <ScheduledRide />, // Add this component
       },
     ],

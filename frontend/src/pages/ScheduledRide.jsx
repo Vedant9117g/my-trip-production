@@ -1,179 +1,120 @@
-import React, { useState, useEffect, useRef } from "react";
-import LocationSearchPanel from "../components/passanger/LocationSearchPanel";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const ScheduledRide = () => {
-  const [pickup, setPickup] = useState("");
-  const [destination, setDestination] = useState("");
-  const [rideType, setRideType] = useState("car"); // Default ride type
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [activeField, setActiveField] = useState(""); // Tracks which field is active
-  const panelRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [rides, setRides] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const fetchSuggestions = async (input) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/maps/suggestions?input=${input}`);
-      const data = await response.json();
-      setSuggestions(data); // Update suggestions state
-      console.log("Suggestions:", data); // Log suggestions to the console
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-    }
-  };
-
-  const handlePickupChange = (e) => {
-    const value = e.target.value;
-    setPickup(value);
-    if (value.length > 2) {
-      fetchSuggestions(value); // Fetch suggestions when input length > 2
-    }
-  };
-
-  const handleDestinationChange = (e) => {
-    const value = e.target.value;
-    setDestination(value);
-    if (value.length > 2) {
-      fetchSuggestions(value); // Fetch suggestions when input length > 2
-    }
-  };
-
-  const handleClickOutside = (event) => {
-    if (panelRef.current && !panelRef.current.contains(event.target)) {
-      setPanelOpen(false); // Close the panel if clicked outside
-    }
-  };
+  const query = new URLSearchParams(location.search);
+  const origin = query.get("origin");
+  const destination = query.get("destination");
+  const date = query.get("date");
+  const vehicleType = query.get("vehicleType");
+  const seats = query.get("seats");
 
   useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+    const fetchRides = async () => {
+      const token = localStorage.getItem("authToken");
+
+      if (!token) {
+        console.warn("No token found. Redirecting to login...");
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/rides/search-scheduled",
+          {
+            params: { origin, destination, date },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true, // optional if backend uses cookies
+          }
+        );
+
+        console.log("Fetched rides:", response.data.rides);
+        console.log("vehicleType from query:", vehicleType);
+        console.log("seats from query:", seats);
+
+        const filtered = response.data.rides.filter((ride) => {
+          const rideVehicleType =
+            ride?.captainId?.vehicle?.vehicleType?.toLowerCase();
+          const requestedVehicleType = vehicleType?.toLowerCase();
+          return rideVehicleType === requestedVehicleType;
+        });
+
+        setRides(filtered);
+      } catch (error) {
+        console.error("Failed to fetch rides:", error);
+        if (error.response?.status === 401) {
+          alert("Session expired or unauthorized. Please log in again.");
+          localStorage.removeItem("authToken");
+          navigate("/login");
+        }
+      } finally {
+        setLoading(false);
+      }
     };
-  }, []);
 
-  const handleRideScheduling = () => {
-    if (!pickup || !destination || !date || !time) {
-      alert("Please fill in all fields.");
-      return;
+    if (origin && destination && date) {
+      fetchRides();
     }
-
-    setIsScheduling(true);
-
-    // Simulate API call for scheduling a ride
-    setTimeout(() => {
-      alert(
-        `Ride scheduled successfully! Pickup: ${pickup}, Destination: ${destination}, Ride Type: ${rideType}, Date: ${date}, Time: ${time}`
-      );
-      setIsScheduling(false);
-    }, 2000);
-  };
+  }, [origin, destination, date, vehicleType, seats, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col md:flex-row items-center justify-center p-6 gap-6">
-      {/* Form Section */}
-      <div className="w-full md:w-1/2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg relative">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Scheduled Ride</h1>
-        <div className="space-y-4">
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Pickup Location</label>
-            <input
-              type="text"
-              value={pickup}
-              onChange={handlePickupChange}
-              onFocus={() => {
-                setPanelOpen(true);
-                setActiveField("pickup");
-              }}
-              placeholder="Enter pickup location"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-            {panelOpen && activeField === "pickup" && (
-              <div ref={panelRef}>
-                <LocationSearchPanel
-                  suggestions={suggestions}
-                  setPickup={setPickup}
-                  setDestination={setDestination}
-                  activeField={activeField}
-                  setPanelOpen={setPanelOpen}
-                />
-              </div>
-            )}
-          </div>
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Destination</label>
-            <input
-              type="text"
-              value={destination}
-              onChange={handleDestinationChange}
-              onFocus={() => {
-                setPanelOpen(true);
-                setActiveField("destination");
-              }}
-              placeholder="Enter destination"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-            {panelOpen && activeField === "destination" && (
-              <div ref={panelRef}>
-                <LocationSearchPanel
-                  suggestions={suggestions}
-                  setPickup={setPickup}
-                  setDestination={setDestination}
-                  activeField={activeField}
-                  setPanelOpen={setPanelOpen}
-                />
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ride Type</label>
-            <select
-              value={rideType}
-              onChange={(e) => setRideType(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="car">Car</option>
-              <option value="bike">Bike</option>
-              <option value="auto">Auto</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Time</label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <button
-            onClick={handleRideScheduling}
-            disabled={isScheduling}
-            className="w-full py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
-          >
-            {isScheduling ? "Scheduling..." : "Schedule Ride"}
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        Scheduled Rides from {origin} to {destination} on {date}
+      </h1>
 
-      {/* Map Section */}
-      <div className="w-full md:w-1/2">
-        <img
-          src="https://miro.medium.com/v2/resize:fit:1400/0*gwMx05pqII5hbfmX.gif"
-          alt="Map"
-          className="w-full h-64 md:h-full object-cover rounded-lg shadow-lg"
-        />
-      </div>
+      {loading ? (
+        <p className="text-gray-700 dark:text-gray-300">Loading rides...</p>
+      ) : rides.length === 0 ? (
+        <p className="text-gray-700 dark:text-gray-300">
+          No rides found matching your criteria.
+        </p>
+      ) : (
+        <div className="grid gap-4">
+          {rides.map((ride) => (
+            <div
+              key={ride._id}
+              className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
+            >
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                {ride.origin} ➡️ {ride.destination}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <strong>Captain:</strong> {ride.captainId.name} (
+                {ride.captainId.phone})
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <strong>Vehicle:</strong> {ride.captainId.vehicle.model} (
+                {ride.captainId.vehicle.numberPlate})
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <strong>Seats:</strong> {ride.seatsBooked}/{ride.totalSeats}{" "}
+                {ride.totalSeats - ride.seatsBooked <= 0 && (
+                  <span className="text-red-500 font-semibold"> (Full)</span>
+                )}
+              </p>
+
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <strong>Departure:</strong>{" "}
+                {new Date(ride.departureTime).toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <strong>Fare:</strong> ₹
+                {ride.finalFare || ride.fare?.[vehicleType] || "N/A"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

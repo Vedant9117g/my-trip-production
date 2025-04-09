@@ -50,12 +50,12 @@ async function createRide(userId, role, origin, destination, totalOrBookedSeats,
 
   if (role === "captain" || role === "both") {
     rideData.captainId = userId;
-    rideData.totalSeats = totalOrBookedSeats; // total seats offered by captain
+    rideData.totalSeats = totalOrBookedSeats;
     rideData.seatsBooked = 0;
     rideData.isCaptainCreated = true;
   } else {
     rideData.userId = userId;
-    rideData.totalSeats = totalOrBookedSeats; // booked = total for now (1 ride per passenger)
+    rideData.totalSeats = totalOrBookedSeats;
     rideData.seatsBooked = totalOrBookedSeats;
     rideData.isCaptainCreated = false;
   }
@@ -95,6 +95,11 @@ async function notifyCaptains(originCoords, ride, io) {
   console.log(`Notified ${nearbyCaptains.length} captains`);
 }
 
+function extractMainCity(place) {
+  if (!place) return "";
+  return place.split(",")[0].replace(/( City| District)$/i, "").trim();
+}
+
 async function searchScheduledRides(origin, destination, date) {
   if (!origin || !destination || !date) throw new Error("Origin, destination and date are required");
 
@@ -102,15 +107,19 @@ async function searchScheduledRides(origin, destination, date) {
   const endOfDay = new Date(date);
   endOfDay.setHours(23, 59, 59, 999);
 
+  const originKeyword = extractMainCity(origin);
+  const destinationKeyword = extractMainCity(destination);
+
   return rideModel.find({
-    origin,
-    destination,
+    origin: { $regex: originKeyword, $options: "i" },
+    destination: { $regex: destinationKeyword, $options: "i" },
     rideType: "scheduled",
     departureTime: { $gte: startOfDay, $lte: endOfDay },
     captainId: { $ne: null },
     status: { $in: ["searching", "driver_assigned"] },
   }).populate("captainId", "name phone vehicle").lean();
 }
+
 
 module.exports = {
   createRide,

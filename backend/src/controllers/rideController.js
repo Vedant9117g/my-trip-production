@@ -35,7 +35,11 @@ async function searchScheduledRidesController(req, res) {
   try {
     const { origin, destination, date } = req.query;
 
-    const rides = await searchScheduledRides(origin, destination, date);
+    // Optionally trim inputs
+    const trimmedOrigin = origin?.trim() || "";
+    const trimmedDestination = destination?.trim() || "";
+
+    const rides = await searchScheduledRides(trimmedOrigin, trimmedDestination, date);
 
     res.status(200).json({ rides });
   } catch (error) {

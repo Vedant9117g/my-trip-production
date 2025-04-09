@@ -91,9 +91,10 @@ const Home = () => {
               <div ref={panelRef}>
                 <LocationSearchPanel
                   suggestions={suggestions}
-                  setPickup={setOrigin}
-                  activeField="origin"
-                  setPanelOpen={setPanelOpen}
+                  onSelect={(place) => {
+                    setOrigin(place);
+                    setPanelOpen(false);
+                  }}
                 />
               </div>
             )}
@@ -120,9 +121,10 @@ const Home = () => {
               <div ref={panelRef}>
                 <LocationSearchPanel
                   suggestions={suggestions}
-                  setDestination={setDestination}
-                  activeField="destination"
-                  setPanelOpen={setPanelOpen}
+                  onSelect={(place) => {
+                    setDestination(place);
+                    setPanelOpen(false);
+                  }}
                 />
               </div>
             )}

@@ -23,7 +23,7 @@ function generateOtp() {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-async function createRide(userId, role, origin, destination, seatsBooked, rideType, departureTime, vehicleType, io) {
+async function createRide(userId, role, origin, destination, totalOrBookedSeats, rideType, departureTime, vehicleType, io) {
   if (!origin || !destination) throw new Error("Origin and destination are required");
 
   const originCoords = await mapService.getAddressCoordinate(origin);
@@ -41,8 +41,6 @@ async function createRide(userId, role, origin, destination, seatsBooked, rideTy
     duration: fare.duration,
     fare,
     finalFare: fare[vehicleType] || fare.car,
-    seatsBooked,
-    totalSeats: seatsBooked,
     rideType,
     departureTime: rideType === "instant" ? null : departureTime,
     vehicleType,
@@ -50,11 +48,16 @@ async function createRide(userId, role, origin, destination, seatsBooked, rideTy
     otp,
   };
 
-  // Assign userId based on role
   if (role === "captain" || role === "both") {
     rideData.captainId = userId;
+    rideData.totalSeats = totalOrBookedSeats; // total seats offered by captain
+    rideData.seatsBooked = 0;
+    rideData.isCaptainCreated = true;
   } else {
     rideData.userId = userId;
+    rideData.totalSeats = totalOrBookedSeats; // booked = total for now (1 ride per passenger)
+    rideData.seatsBooked = totalOrBookedSeats;
+    rideData.isCaptainCreated = false;
   }
 
   const newRide = await rideModel.create(rideData);
@@ -84,7 +87,9 @@ async function notifyCaptains(originCoords, ride, io) {
   });
 
   nearbyCaptains.forEach((captain) => {
-    io.to(captain.socketId).emit("rideRequest", { ride });
+    if (captain.socketId) {
+      io.to(captain.socketId).emit("rideRequest", { ride });
+    }
   });
 
   console.log(`Notified ${nearbyCaptains.length} captains`);

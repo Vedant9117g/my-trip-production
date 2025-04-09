@@ -38,6 +38,7 @@ const Home = () => {
         alert("Please select a date for scheduled rides.");
         return;
       }
+
       const query = new URLSearchParams({
         origin,
         destination,
@@ -45,9 +46,10 @@ const Home = () => {
         seats,
         date,
       }).toString();
+
       navigate(`/scheduled-rides?${query}`);
     } else {
-      navigate("/instant-ride"); // Placeholder for now
+      navigate("/instant-ride"); // Placeholder
     }
   };
 
@@ -65,9 +67,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-6">
       <div className="max-w-3xl w-full bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6">
-          Find a Ride
-        </h1>
+        <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6">Find a Ride</h1>
 
         <div className="space-y-4">
           {/* Origin */}
@@ -92,8 +92,7 @@ const Home = () => {
                 <LocationSearchPanel
                   suggestions={suggestions}
                   setPickup={setOrigin}
-                  setDestination={setDestination}
-                  activeField="pickup"
+                  activeField="origin"
                   setPanelOpen={setPanelOpen}
                 />
               </div>
@@ -121,7 +120,6 @@ const Home = () => {
               <div ref={panelRef}>
                 <LocationSearchPanel
                   suggestions={suggestions}
-                  setPickup={setOrigin}
                   setDestination={setDestination}
                   activeField="destination"
                   setPanelOpen={setPanelOpen}
@@ -170,7 +168,7 @@ const Home = () => {
             />
           </div>
 
-          {/* Date (only for scheduled) */}
+          {/* Date (for scheduled) */}
           {rideType === "scheduled" && (
             <div>
               <label className="block text-sm text-gray-700 dark:text-gray-300">Date</label>

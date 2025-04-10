@@ -5,7 +5,6 @@ const crypto = require("crypto");
 
 async function getFare(origin, destination) {
   const { distance, duration } = await mapService.getDistanceTime(origin, destination);
-
   const baseFare = { auto: 30, car: 50, bike: 20 };
   const perKmRate = { auto: 10, car: 11, bike: 8 };
   const perMinuteRate = { auto: 2, car: 3, bike: 1.5 };
@@ -76,23 +75,29 @@ async function createRide(userId, role, origin, destination, totalOrBookedSeats,
   return populatedRide;
 }
 
-async function notifyCaptains(originCoords, ride, io) {
-  const radius = 5000;
+async function getRideById(rideId) {
+  return rideModel.findById(rideId)
+    .populate("userId", "name email phone")
+    .populate("captainId", "name email phone vehicle")
+    .lean();
+}
 
-  const nearbyCaptains = await userModel.find({
-    role: { $in: ["captain", "both"] },
-    "location.coordinates": {
-      $geoWithin: { $centerSphere: [[originCoords.lng, originCoords.lat], radius / 6371000] },
-    },
-  });
+async function bookSeatsInRide(rideId, userId, seatsToBook) {
+  const ride = await rideModel.findById(rideId);
+  if (!ride) throw new Error("Ride not found");
 
-  nearbyCaptains.forEach((captain) => {
-    if (captain.socketId) {
-      io.to(captain.socketId).emit("rideRequest", { ride });
-    }
-  });
+  const remainingSeats = ride.totalSeats - ride.seatsBooked;
+  if (seatsToBook > remainingSeats) throw new Error("Not enough available seats");
 
-  console.log(`Notified ${nearbyCaptains.length} captains`);
+  ride.seatsBooked += seatsToBook;
+  if (!ride.userId) ride.userId = userId; // set if not set
+
+  await ride.save();
+
+  return rideModel.findById(rideId)
+    .populate("userId", "name email phone")
+    .populate("captainId", "name email phone vehicle")
+    .lean();
 }
 
 function extractMainCity(place) {
@@ -120,8 +125,28 @@ async function searchScheduledRides(origin, destination, date) {
   }).populate("captainId", "name phone vehicle").lean();
 }
 
+async function notifyCaptains(originCoords, ride, io) {
+  const radius = 5000;
+
+  const nearbyCaptains = await userModel.find({
+    role: { $in: ["captain", "both"] },
+    "location.coordinates": {
+      $geoWithin: { $centerSphere: [[originCoords.lng, originCoords.lat], radius / 6371000] },
+    },
+  });
+
+  nearbyCaptains.forEach((captain) => {
+    if (captain.socketId) {
+      io.to(captain.socketId).emit("rideRequest", { ride });
+    }
+  });
+
+  console.log(`Notified ${nearbyCaptains.length} captains`);
+}
 
 module.exports = {
   createRide,
   searchScheduledRides,
+  getRideById,
+  bookSeatsInRide
 };

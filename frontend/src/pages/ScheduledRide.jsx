@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
 const ScheduledRide = () => {
@@ -76,7 +76,7 @@ const ScheduledRide = () => {
             >
               <div className="flex items-center gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
                 <img
-                src="https://cdn-icons-png.flaticon.com/128/1999/1999625.png"
+                  src="https://cdn-icons-png.flaticon.com/128/1999/1999625.png"
                   alt="Captain Avatar"
                   className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
                 />
@@ -107,6 +107,13 @@ const ScheduledRide = () => {
                 <p className="text-gray-700 dark:text-gray-200">
                   <strong>Seats:</strong> {ride.seatsBooked}/{ride.totalSeats}
                 </p>
+
+                <Link
+                  to={`/ride/${ride._id}`}
+                  className="block text-center bg-blue-600 text-white mt-4 py-2 rounded hover:bg-blue-700"
+                >
+                  View & Book
+                </Link>
               </div>
             </div>
           ))}

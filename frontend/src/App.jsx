@@ -9,6 +9,7 @@ import { useLoadUserQuery } from "./features/api/authApi";
 import Home from "./pages/Home";
 import InstantRide from "./pages/InstantRide";
 import ScheduledRide from "./pages/ScheduledRide";
+import RideDetails from "./pages/RideDetails"; // ✅ Import the new component
 
 const appRouter = createBrowserRouter([
   {
@@ -33,11 +34,15 @@ const appRouter = createBrowserRouter([
       },
       {
         path: "instant-ride",
-        element: <InstantRide />, // Add this component
+        element: <InstantRide />,
       },
       {
         path: "scheduled-rides",
-        element: <ScheduledRide />, // Add this component
+        element: <ScheduledRide />,
+      },
+      {
+        path: "ride/:id", // ✅ New route for ride details
+        element: <RideDetails />,
       },
     ],
   },

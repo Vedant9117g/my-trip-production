@@ -94,11 +94,17 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
 
   await ride.save();
 
+  // 🚀 Add this part to store ride in user's bookedRides
+  await userModel.findByIdAndUpdate(userId, {
+    $addToSet: { bookedRides: rideId },
+  });
+
   return rideModel.findById(rideId)
     .populate("userId", "name email phone")
     .populate("captainId", "name email phone vehicle")
     .lean();
 }
+
 
 function extractMainCity(place) {
   if (!place) return "";

@@ -93,8 +93,11 @@ const logout = (req, res) => {
 
 const getUserProfile = async (req, res) => {
   try {
-    // Use the user object attached by the isAuthenticated middleware
-    const user = req.user;
+    const user = await User.findById(req.user._id)
+      .populate({
+        path: "bookedRides",
+        populate: { path: "captainId", select: "name phone vehicle" },
+      });
 
     if (!user) {
       return res.status(404).json({
@@ -115,6 +118,7 @@ const getUserProfile = async (req, res) => {
     });
   }
 };
+
   
 
 // Update profile

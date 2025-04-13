@@ -1,7 +1,17 @@
+// rideService.js
 const rideModel = require("../models/ride.model");
 const userModel = require("../models/User");
 const mapService = require("./mapService");
 const crypto = require("crypto");
+
+function extractMainCity(place) {
+  if (!place) return "";
+  return place.split(",")[0].replace(/( City| District)$/i, "").trim();
+}
+
+function generateOtp() {
+  return crypto.randomInt(100000, 999999).toString();
+}
 
 async function getFare(origin, destination) {
   const { distance, duration } = await mapService.getDistanceTime(origin, destination);
@@ -16,10 +26,6 @@ async function getFare(origin, destination) {
   };
 
   return { ...fare, distance, duration };
-}
-
-function generateOtp() {
-  return crypto.randomInt(100000, 999999).toString();
 }
 
 async function createRide(userId, role, origin, destination, totalOrBookedSeats, rideType, departureTime, vehicleType, io) {
@@ -90,11 +96,10 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
   if (seatsToBook > remainingSeats) throw new Error("Not enough available seats");
 
   ride.seatsBooked += seatsToBook;
-  if (!ride.userId) ride.userId = userId; // set if not set
+  if (!ride.userId) ride.userId = userId;
 
   await ride.save();
 
-  // 🚀 Add this part to store ride in user's bookedRides
   await userModel.findByIdAndUpdate(userId, {
     $addToSet: { bookedRides: rideId },
   });
@@ -103,12 +108,6 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
     .populate("userId", "name email phone")
     .populate("captainId", "name email phone vehicle")
     .lean();
-}
-
-
-function extractMainCity(place) {
-  if (!place) return "";
-  return place.split(",")[0].replace(/( City| District)$/i, "").trim();
 }
 
 async function searchScheduledRides(origin, destination, date) {
@@ -150,9 +149,33 @@ async function notifyCaptains(originCoords, ride, io) {
   console.log(`Notified ${nearbyCaptains.length} captains`);
 }
 
+// ✅ UPDATE: getCaptainRides returns active & settled
+async function getCaptainRides(captainId) {
+  const now = new Date();
+
+  const allRides = await rideModel.find({ captainId }).sort({ departureTime: 1 })
+    .populate("userId", "name phone")
+    .lean();
+
+  const active = allRides.filter(ride =>
+    ride.status !== "completed" &&
+    ride.status !== "canceled" &&
+    (!ride.departureTime || new Date(ride.departureTime) >= now)
+  );
+
+  const settled = allRides.filter(ride =>
+    ride.status === "completed" ||
+    ride.status === "canceled" ||
+    (ride.departureTime && new Date(ride.departureTime) < now)
+  );
+
+  return { active, settled };
+}
+
 module.exports = {
   createRide,
   searchScheduledRides,
   getRideById,
-  bookSeatsInRide
+  bookSeatsInRide,
+  getCaptainRides,
 };

@@ -5,8 +5,15 @@ import { useLoginUserMutation } from "../features/api/authApi";
 
 const Login = () => {
   const [loginInput, setLoginInput] = useState({ email: "", password: "" });
-  const [loginUser, { data: loginData, error: loginError, isLoading: loginIsLoading, isSuccess: loginIsSuccess }] =
-    useLoginUserMutation();
+  const [
+    loginUser,
+    {
+      data: loginData,
+      error: loginError,
+      isLoading: loginIsLoading,
+      isSuccess: loginIsSuccess,
+    },
+  ] = useLoginUserMutation();
   const navigate = useNavigate();
 
   const changeInputHandler = (e) => {
@@ -24,21 +31,33 @@ const Login = () => {
 
   useEffect(() => {
     if (loginIsSuccess && loginData) {
-      // Store the token in localStorage
+      // Save token and optionally user data
       localStorage.setItem("authToken", loginData.token);
+      localStorage.setItem("userRole", loginData.user.role); // Store role
 
       toast.success(loginData.message || "Login successful.");
-      navigate("/"); // Redirect to home page
+
+      // Redirect based on role
+      if (loginData.user.role === "captain") {
+        navigate("/captain");
+      } else {
+        navigate("/"); // Regular users
+      }
     }
+
     if (loginError) {
-      toast.error(loginError.data?.message || "Login failed. Please try again.");
+      toast.error(
+        loginError.data?.message || "Login failed. Please try again."
+      );
     }
   }, [loginIsSuccess, loginData, loginError, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">Login</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">
+          Login
+        </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
           Enter your email and password to log in.
         </p>
@@ -50,7 +69,10 @@ const Login = () => {
           className="space-y-4"
         >
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Email
             </label>
             <input
@@ -65,7 +87,10 @@ const Login = () => {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Password
             </label>
             <input

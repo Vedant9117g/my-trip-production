@@ -1,14 +1,16 @@
+// rideController.js
 const {
   createRide,
   searchScheduledRides,
   getRideById,
-  bookSeatsInRide
+  bookSeatsInRide,
+  getCaptainRides
 } = require("../services/rideService");
 
 async function createRideController(req, res) {
   try {
     const { origin, destination, rideType, departureTime, vehicleType } = req.body;
-    let seats = parseInt(req.body.totalSeats || req.body.seatsBooked || 1);
+    const seats = parseInt(req.body.totalSeats || 1);
     const userId = req.user._id;
     const role = req.user.role;
 
@@ -34,10 +36,7 @@ async function createRideController(req, res) {
 async function searchScheduledRidesController(req, res) {
   try {
     const { origin, destination, date } = req.query;
-    const trimmedOrigin = origin?.trim() || "";
-    const trimmedDestination = destination?.trim() || "";
-
-    const rides = await searchScheduledRides(trimmedOrigin, trimmedDestination, date);
+    const rides = await searchScheduledRides(origin?.trim(), destination?.trim(), date);
     res.status(200).json({ rides });
   } catch (error) {
     console.error("Search scheduled rides error:", error);
@@ -61,7 +60,6 @@ async function bookSeatsController(req, res) {
     const rideId = req.params.id;
     const userId = req.user._id;
     const seatsToBook = parseInt(req.body.seats || 1);
-
     const updatedRide = await bookSeatsInRide(rideId, userId, seatsToBook);
     res.status(200).json({ message: "Seats booked successfully!", ride: updatedRide });
   } catch (error) {
@@ -70,9 +68,21 @@ async function bookSeatsController(req, res) {
   }
 }
 
+async function getCaptainRidesController(req, res) {
+  try {
+    const captainId = req.user._id;
+    const { active, settled } = await getCaptainRides(captainId);
+    res.status(200).json({ active, settled });
+  } catch (error) {
+    console.error("Get captain rides error:", error);
+    res.status(500).json({ message: error.message });
+  }
+}
+
 module.exports = {
   createRideController,
   searchScheduledRidesController,
   getRideByIdController,
-  bookSeatsController
+  bookSeatsController,
+  getCaptainRidesController
 };

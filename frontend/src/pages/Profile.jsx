@@ -2,36 +2,77 @@ import React, { useEffect, useState } from "react";
 import { useLoadUserQuery, useUpdateUserMutation } from "../features/api/authApi";
 import { toast } from "sonner";
 import dayjs from "dayjs";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const navigate = useNavigate();
+  const [rides, setRides] = useState({ active: [], settled: [] });
+  const [loadingRides, setLoadingRides] = useState(true);
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
-  const [vehicle, setVehicle] = useState({
-    vehicleType: "",
-    model: "",
-    numberPlate: "",
-    seats: 1,
-  });
+  const [vehicle, setVehicle] = useState({ vehicleType: "", model: "", numberPlate: "", seats: 1 });
   const [profilePhoto, setProfilePhoto] = useState("");
 
   const { data, isLoading, refetch } = useLoadUserQuery();
-  const [
-    updateUser,
-    { data: updateUserData, isLoading: updateUserIsLoading, isError, error, isSuccess },
-  ] = useUpdateUserMutation();
+  const [updateUser, { data: updateUserData, isLoading: updateUserIsLoading, isError, error, isSuccess }] =
+    useUpdateUserMutation();
 
-  // Set initial state from user data
+  const user = data?.user || {};
+  const now = dayjs();
+
+  const isActive = (departureTime) => dayjs(departureTime).isAfter(now);
+  const isSettled = (departureTime) => dayjs(departureTime).isBefore(now);
+
   useEffect(() => {
-    if (data?.user) {
-      const user = data.user;
+    if (user) {
       setName(user.name || "");
       setPhone(user.phone || "");
       setRole(user.role || "");
       setVehicle(user.vehicle || { vehicleType: "", model: "", numberPlate: "", seats: 1 });
       setProfilePhoto(user.profilePhoto || "");
     }
-  }, [data]);
+  }, [user]);
+
+  useEffect(() => {
+    const fetchRides = async () => {
+      if (user.role === "captain") {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          toast.error("Unauthorized. Redirecting...");
+          navigate("/login");
+          return;
+        }
+
+        try {
+          const response = await axios.get("http://localhost:5000/api/rides/my-rides", {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          });
+          setRides(response.data);
+        } catch (error) {
+          console.error("Fetch error:", error);
+          toast.error("Failed to load rides.");
+          if (error.response?.status === 401) {
+            localStorage.removeItem("authToken");
+            navigate("/login");
+          }
+        } finally {
+          setLoadingRides(false);
+        }
+      } else {
+        const rideList = user.bookedRides || [];
+        const active = rideList.filter((ride) => ride?.departureTime && isActive(ride.departureTime));
+        const settled = rideList.filter((ride) => ride?.departureTime && isSettled(ride.departureTime));
+        setRides({ active, settled });
+        setLoadingRides(false);
+      }
+    };
+
+    if (user?.role) fetchRides();
+  }, [user, navigate]);
 
   const onChangeHandler = (e) => {
     const file = e.target.files?.[0];
@@ -47,7 +88,6 @@ const Profile = () => {
     if (profilePhoto && typeof profilePhoto !== "string") {
       formData.append("profilePhoto", profilePhoto);
     }
-
     await updateUser(formData);
   };
 
@@ -59,29 +99,20 @@ const Profile = () => {
     if (isError) {
       toast.error(error?.data?.message || "Failed to update profile");
     }
-  }, [error, updateUserData, isSuccess, isError]);
+  }, [isSuccess, isError, updateUserData, error, refetch]);
 
-  if (isLoading) return <h1 className="text-center text-xl">Loading Profile...</h1>;
-
-  const user = data?.user || {};
+  if (isLoading || loadingRides) return <h1 className="text-center text-xl">Loading Profile...</h1>;
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
       <div className="w-full max-w-3xl bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">Profile</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
-          View and update your profile information.
-        </p>
+        <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-4">Profile</h2>
 
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
           <div className="flex flex-col items-center">
             <div className="h-24 w-24 md:h-32 md:w-32 mb-4 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600">
               <img
-                src={
-                  typeof user?.profilePhoto === "string"
-                    ? user.profilePhoto
-                    : "https://github.com/shadcn.png"
-                }
+                src={typeof user.profilePhoto === "string" ? user.profilePhoto : "https://github.com/shadcn.png"}
                 alt="Profile"
                 className="h-full w-full object-cover"
               />
@@ -90,49 +121,31 @@ const Profile = () => {
 
           <div className="w-full">
             <div className="mb-4">
-              <h1 className="font-semibold text-gray-900 dark:text-gray-100">
-                Name:
-                <span className="font-normal text-gray-700 dark:text-gray-300 ml-2">
-                  {user?.name || "N/A"}
-                </span>
-              </h1>
+              <strong className="text-gray-900 dark:text-gray-100">Name:</strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">{user.name || "N/A"}</span>
             </div>
             <div className="mb-4">
-              <h1 className="font-semibold text-gray-900 dark:text-gray-100">
-                Email:
-                <span className="font-normal text-gray-700 dark:text-gray-300 ml-2">
-                  {user?.email || "N/A"}
-                </span>
-              </h1>
+              <strong className="text-gray-900 dark:text-gray-100">Email:</strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">{user.email || "N/A"}</span>
             </div>
             <div className="mb-4">
-              <h1 className="font-semibold text-gray-900 dark:text-gray-100">
-                Phone:
-                <span className="font-normal text-gray-700 dark:text-gray-300 ml-2">
-                  {user?.phone || "N/A"}
-                </span>
-              </h1>
+              <strong className="text-gray-900 dark:text-gray-100">Phone:</strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">{user.phone || "N/A"}</span>
             </div>
             <div className="mb-4">
-              <h1 className="font-semibold text-gray-900 dark:text-gray-100">
-                Role:
-                <span className="font-normal text-gray-700 dark:text-gray-300 ml-2">
-                  {user?.role?.toUpperCase() || "N/A"}
-                </span>
-              </h1>
+              <strong className="text-gray-900 dark:text-gray-100">Role:</strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">{user.role?.toUpperCase()}</span>
             </div>
-            {user?.role === "captain" && user?.vehicle && (
+            {user.role === "captain" && user.vehicle && (
               <div className="mb-4">
-                <h1 className="font-semibold text-gray-900 dark:text-gray-100">
-                  Vehicle:
-                  <span className="font-normal text-gray-700 dark:text-gray-300 ml-2">
-                    {`${user.vehicle.vehicleType || "N/A"} - ${user.vehicle.model || "N/A"} (${user.vehicle.numberPlate || "N/A"})`}
-                  </span>
-                </h1>
+                <strong className="text-gray-900 dark:text-gray-100">Vehicle:</strong>{" "}
+                <span className="text-gray-700 dark:text-gray-300">
+                  {user.vehicle.vehicleType} - {user.vehicle.model} ({user.vehicle.numberPlate})
+                </span>
               </div>
             )}
             <button
-              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"
+              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
               onClick={() => document.getElementById("edit-profile-modal").showModal()}
             >
               Edit Profile
@@ -140,43 +153,68 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Booked Rides Section */}
-        {user?.role === "passenger" && user?.bookedRides?.length > 0 && (
-          <div className="mt-10">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Booked Rides</h2>
-            <div className="space-y-4">
-              {user.bookedRides.map((ride) => (
-                <div
-                  key={ride._id}
-                  className="p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
-                >
-                  <p className="text-gray-800 dark:text-gray-200">
-                    <strong>From:</strong> {ride.origin} | <strong>To:</strong> {ride.destination}
+        {/* Rides Section */}
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            {user.role === "captain" ? "Published Rides" : "Booked Rides"}
+          </h2>
+
+          {/* Active Rides */}
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Active</h3>
+          {rides.active.length === 0 ? (
+            <p className="text-gray-600 dark:text-gray-400 mb-4">No active rides.</p>
+          ) : (
+            <div className="space-y-4 mb-6">
+              {rides.active.map((ride) => (
+                <div key={ride._id} className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {ride.origin} → {ride.destination}
                   </p>
-                  <p className="text-gray-800 dark:text-gray-200">
-                    <strong>Date:</strong>{" "}
-                    {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Departure:</strong> {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
                   </p>
-                  <p className="text-gray-800 dark:text-gray-200">
+                  <p className="text-gray-700 dark:text-gray-300">
                     <strong>Fare:</strong> ₹{ride.finalFare}
                   </p>
-                  <p className="text-gray-800 dark:text-gray-200">
-                    <strong>Seats Booked:</strong> {ride.seatsBooked}
-                  </p>
-                  <p className="text-gray-800 dark:text-gray-200">
-                    <strong>Captain:</strong> {ride?.captainId?.name} ({ride?.captainId?.phone})
-                  </p>
-                  <p className="text-gray-800 dark:text-gray-200">
-                    <strong>Vehicle:</strong>{" "}
-                    {ride?.captainId?.vehicle
-                      ? `${ride.captainId.vehicle.vehicleType} - ${ride.captainId.vehicle.model} (${ride.captainId.vehicle.numberPlate})`
-                      : "N/A"}
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Seats:</strong>{" "}
+                    {user.role === "captain"
+                      ? `${ride.seatsBooked}/${ride.totalSeats}`
+                      : ride.seatsBooked}
                   </p>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Settled Rides */}
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Settled</h3>
+          {rides.settled.length === 0 ? (
+            <p className="text-gray-600 dark:text-gray-400">No settled rides.</p>
+          ) : (
+            <div className="space-y-4">
+              {rides.settled.map((ride) => (
+                <div key={ride._id} className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {ride.origin} → {ride.destination}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Departure:</strong> {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Fare:</strong> ₹{ride.finalFare}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <strong>Seats:</strong>{" "}
+                    {user.role === "captain"
+                      ? `${ride.seatsBooked}/${ride.totalSeats}`
+                      : ride.seatsBooked}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Modal */}
@@ -189,100 +227,56 @@ const Profile = () => {
           }}
           className="space-y-4"
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Name"
-              className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Phone"
-              className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
-            >
-              <option value="passenger">Passenger</option>
-              <option value="captain">Captain</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
+          <input
+            type="text"
+            placeholder="Name"
+            className="input input-bordered w-full"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Phone"
+            className="input input-bordered w-full"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
           {role === "captain" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Vehicle Details
-              </label>
+            <>
               <input
                 type="text"
+                placeholder="Vehicle Type"
+                className="input input-bordered w-full"
                 value={vehicle.vehicleType}
                 onChange={(e) => setVehicle({ ...vehicle, vehicleType: e.target.value })}
-                placeholder="Vehicle Type"
-                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
               />
               <input
                 type="text"
+                placeholder="Model"
+                className="input input-bordered w-full"
                 value={vehicle.model}
                 onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
-                placeholder="Model"
-                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
               />
               <input
                 type="text"
+                placeholder="Number Plate"
+                className="input input-bordered w-full"
                 value={vehicle.numberPlate}
                 onChange={(e) => setVehicle({ ...vehicle, numberPlate: e.target.value })}
-                placeholder="Number Plate"
-                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
               />
               <input
                 type="number"
-                value={vehicle.seats}
-                onChange={(e) => setVehicle({ ...vehicle, seats: e.target.value })}
                 placeholder="Seats"
-                className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
+                className="input input-bordered w-full"
+                value={vehicle.seats}
+                onChange={(e) => setVehicle({ ...vehicle, seats: Number(e.target.value) })}
               />
-            </div>
+            </>
           )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Profile Photo
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onChangeHandler}
-              className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => document.getElementById("edit-profile-modal").close()}
-              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={updateUserIsLoading}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-            >
-              {updateUserIsLoading ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
+          <input type="file" accept="image/*" onChange={onChangeHandler} />
+          <button className="btn btn-primary w-full" type="submit">
+            Update
+          </button>
         </form>
       </dialog>
     </div>

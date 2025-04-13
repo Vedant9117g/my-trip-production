@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import InstantRide from "./pages/InstantRide";
 import ScheduledRide from "./pages/ScheduledRide";
 import RideDetails from "./pages/RideDetails"; // ✅ Import the new component
+import CaptainHome from "./pages/CaptainHome";
 
 const appRouter = createBrowserRouter([
   {
@@ -43,6 +44,10 @@ const appRouter = createBrowserRouter([
       {
         path: "ride/:id", // ✅ New route for ride details
         element: <RideDetails />,
+      },
+      {
+        path: "captain",
+        element: <CaptainHome />,
       },
     ],
   },

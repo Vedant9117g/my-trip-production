@@ -9,21 +9,33 @@ const {
 
 async function createRideController(req, res) {
   try {
-    const { origin, destination, rideType, departureTime, vehicleType } = req.body;
-    const seats = parseInt(req.body.totalSeats || 1);
+    const {
+      origin,
+      destination,
+      rideType,
+      departureTime,
+      vehicleType,
+      scheduledType,
+      customFare,
+      totalSeats // totalOrBookedSeats depending on role
+    } = req.body;
+
+    const seats = parseInt(totalSeats || 1);
     const userId = req.user._id;
     const role = req.user.role;
 
     const ride = await createRide(
       userId,
       role,
-      origin,
-      destination,
+      origin?.trim(),
+      destination?.trim(),
       seats,
       rideType,
       departureTime,
       vehicleType,
-      req.app.get("io")
+      req.app.get("io"),
+      scheduledType,
+      customFare
     );
 
     res.status(201).json({ message: "Ride created successfully!", ride });
@@ -60,13 +72,23 @@ async function bookSeatsController(req, res) {
     const rideId = req.params.id;
     const userId = req.user._id;
     const seatsToBook = parseInt(req.body.seats || 1);
-    const updatedRide = await bookSeatsInRide(rideId, userId, seatsToBook);
-    res.status(200).json({ message: "Seats booked successfully!", ride: updatedRide });
+
+    const { ride, otp } = await bookSeatsInRide(rideId, userId, seatsToBook);
+
+    // TODO: Replace this log with real SMS sending logic
+    console.log(`Send this OTP to passenger: ${otp}`);
+
+    res.status(200).json({
+      message: "Seats booked successfully!",
+      ride,
+      otp, // optionally send to frontend if needed
+    });
   } catch (error) {
     console.error("Book seats error:", error);
     res.status(400).json({ message: error.message });
   }
 }
+
 
 async function getCaptainRidesController(req, res) {
   try {

@@ -4,6 +4,28 @@ import dayjs from "dayjs";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
+const RideCard = ({ ride }) => {
+  return (
+    <div className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+      <p className="text-gray-900 dark:text-white font-medium">
+        {ride.origin} → {ride.destination}
+      </p>
+      <p className="text-gray-700 dark:text-gray-300">
+        <strong>Departure:</strong> {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
+      </p>
+      <p className="text-gray-700 dark:text-gray-300">
+        <strong>Fare:</strong> ₹{ride.finalFare}
+      </p>
+      <p className="text-gray-700 dark:text-gray-300">
+        <strong>Seats:</strong>{" "}
+        {ride.scheduledType === "carpool"
+          ? `${ride.totalSeats - ride.availableSeats}/${ride.totalSeats}`
+          : `${ride.seatsBooked}/${ride.totalSeats}`}
+      </p>
+    </div>
+  );
+};
+
 const CaptainHome = () => {
   const [activeRides, setActiveRides] = useState([]);
   const [settledRides, setSettledRides] = useState([]);
@@ -13,40 +35,42 @@ const CaptainHome = () => {
     destination: "",
     totalSeats: 1,
     rideType: "scheduled",
+    scheduledType: "cab",
     departureTime: "",
     vehicleType: "car",
+    customFare: "",
   });
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchRides = async () => {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Unauthorized. Redirecting to login...");
+  const fetchRides = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      toast.error("Unauthorized. Redirecting to login...");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const response = await axios.get("http://localhost:5000/api/rides/my-rides", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+
+      setActiveRides(response.data.active || []);
+      setSettledRides(response.data.settled || []);
+    } catch (error) {
+      console.error("Error fetching rides:", error);
+      toast.error("Failed to load rides.");
+      if (error.response?.status === 401) {
+        localStorage.removeItem("authToken");
         navigate("/login");
-        return;
       }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      try {
-        const response = await axios.get("http://localhost:5000/api/rides/my-rides", {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        });
-
-        setActiveRides(response.data.active || []);
-        setSettledRides(response.data.settled || []);
-      } catch (error) {
-        console.error("Error fetching rides:", error);
-        toast.error("Failed to load rides.");
-        if (error.response?.status === 401) {
-          localStorage.removeItem("authToken");
-          navigate("/login");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchRides();
   }, [navigate]);
 
@@ -64,8 +88,15 @@ const CaptainHome = () => {
       return;
     }
 
+    const payload = { ...formData, totalSeats: Number(formData.totalSeats) };
+    if (payload.scheduledType === "cab") {
+      payload.customFare = payload.customFare ? Number(payload.customFare) : undefined;
+    } else {
+      delete payload.customFare;
+    }
+
     try {
-      const response = await axios.post("http://localhost:5000/api/rides/create", formData, {
+      const response = await axios.post("http://localhost:5000/api/rides/create", payload, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -76,16 +107,12 @@ const CaptainHome = () => {
         destination: "",
         totalSeats: 1,
         rideType: "scheduled",
+        scheduledType: "cab",
         departureTime: "",
         vehicleType: "car",
+        customFare: "",
       });
-
-      // Refresh the rides list
-      const ridesResponse = await axios.get("http://localhost:5000/api/rides/my-rides", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setActiveRides(ridesResponse.data.active || []);
-      setSettledRides(ridesResponse.data.settled || []);
+      fetchRides();
     } catch (error) {
       console.error("Error creating ride:", error);
       toast.error(error.response?.data?.message || "Failed to create ride.");
@@ -136,6 +163,7 @@ const CaptainHome = () => {
               value={formData.totalSeats}
               onChange={handleInputChange}
               className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+              min={1}
               required
             />
             <select
@@ -149,10 +177,30 @@ const CaptainHome = () => {
               <option value="bike">Bike</option>
               <option value="auto">Auto</option>
             </select>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+
+            <select
+              name="scheduledType"
+              value={formData.scheduledType}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
             >
+              <option value="cab">Cab</option>
+              <option value="carpool">Carpool</option>
+            </select>
+
+            {formData.scheduledType === "cab" && (
+              <input
+                type="number"
+                name="customFare"
+                placeholder="Optional Custom Fare"
+                value={formData.customFare}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                min={1}
+              />
+            )}
+
+            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
               Publish Ride
             </button>
           </form>
@@ -166,20 +214,7 @@ const CaptainHome = () => {
           ) : (
             <div className="space-y-4">
               {activeRides.map((ride) => (
-                <div key={ride._id} className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-                  <p className="text-gray-900 dark:text-white font-medium">
-                    {ride.origin} → {ride.destination}
-                  </p>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Departure:</strong> {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
-                  </p>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Fare:</strong> ₹{ride.finalFare}
-                  </p>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Seats:</strong> {ride.seatsBooked}/{ride.totalSeats}
-                  </p>
-                </div>
+                <RideCard key={ride._id} ride={ride} />
               ))}
             </div>
           )}
@@ -193,20 +228,7 @@ const CaptainHome = () => {
           ) : (
             <div className="space-y-4">
               {settledRides.map((ride) => (
-                <div key={ride._id} className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-                  <p className="text-gray-900 dark:text-white font-medium">
-                    {ride.origin} → {ride.destination}
-                  </p>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Departure:</strong> {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
-                  </p>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Fare:</strong> ₹{ride.finalFare}
-                  </p>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    <strong>Seats:</strong> {ride.seatsBooked}/{ride.totalSeats}
-                  </p>
-                </div>
+                <RideCard key={ride._id} ride={ride} />
               ))}
             </div>
           )}

@@ -28,7 +28,19 @@ async function getFare(origin, destination) {
   return { ...fare, distance, duration };
 }
 
-async function createRide(userId, role, origin, destination, totalOrBookedSeats, rideType, departureTime, vehicleType, io) {
+async function createRide(
+  userId,
+  role,
+  origin,
+  destination,
+  totalOrBookedSeats,
+  rideType,
+  departureTime,
+  vehicleType,
+  io,
+  scheduledType,
+  customFare = null
+) {
   if (!origin || !destination) throw new Error("Origin and destination are required");
 
   const originCoords = await mapService.getAddressCoordinate(origin);
@@ -38,6 +50,13 @@ async function createRide(userId, role, origin, destination, totalOrBookedSeats,
   const fare = await getFare(origin, destination);
   const otp = generateOtp();
 
+  let baseFinalFare = customFare || fare[vehicleType] || fare.car;
+
+  // Adjust fare per seat for captain-created carpool scheduled rides
+  if (role === "captain" && rideType === "scheduled" && scheduledType === "carpool") {
+    baseFinalFare = Math.round(baseFinalFare / totalOrBookedSeats);
+  }
+
   const rideData = {
     origin,
     destination,
@@ -45,8 +64,9 @@ async function createRide(userId, role, origin, destination, totalOrBookedSeats,
     distance: fare.distance,
     duration: fare.duration,
     fare,
-    finalFare: fare[vehicleType] || fare.car,
+    finalFare: baseFinalFare,
     rideType,
+    scheduledType: rideType === "scheduled" ? scheduledType : undefined,
     departureTime: rideType === "instant" ? null : departureTime,
     vehicleType,
     status: "searching",
@@ -56,12 +76,14 @@ async function createRide(userId, role, origin, destination, totalOrBookedSeats,
   if (role === "captain" || role === "both") {
     rideData.captainId = userId;
     rideData.totalSeats = totalOrBookedSeats;
+    rideData.availableSeats = totalOrBookedSeats;
     rideData.seatsBooked = 0;
     rideData.isCaptainCreated = true;
   } else {
     rideData.userId = userId;
     rideData.totalSeats = totalOrBookedSeats;
     rideData.seatsBooked = totalOrBookedSeats;
+    rideData.availableSeats = 0;
     rideData.isCaptainCreated = false;
   }
 
@@ -96,6 +118,8 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
   if (seatsToBook > remainingSeats) throw new Error("Not enough available seats");
 
   ride.seatsBooked += seatsToBook;
+  ride.availableSeats -= seatsToBook;
+
   if (!ride.userId) ride.userId = userId;
 
   await ride.save();
@@ -131,7 +155,7 @@ async function searchScheduledRides(origin, destination, date) {
 }
 
 async function notifyCaptains(originCoords, ride, io) {
-  const radius = 5000;
+  const radius = 5000; // 5km radius
 
   const nearbyCaptains = await userModel.find({
     role: { $in: ["captain", "both"] },
@@ -149,7 +173,6 @@ async function notifyCaptains(originCoords, ride, io) {
   console.log(`Notified ${nearbyCaptains.length} captains`);
 }
 
-// ✅ UPDATE: getCaptainRides returns active & settled
 async function getCaptainRides(captainId) {
   const now = new Date();
 
@@ -174,8 +197,9 @@ async function getCaptainRides(captainId) {
 
 module.exports = {
   createRide,
-  searchScheduledRides,
+  getFare,
   getRideById,
   bookSeatsInRide,
+  searchScheduledRides,
   getCaptainRides,
 };

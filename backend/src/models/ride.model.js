@@ -5,16 +5,14 @@ const rideSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false // ✅ make optional
     },
     captainId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false // ✅ make optional
     },
 
-    origin: { type: String, required: true }, // Pickup Location Name
-    destination: { type: String, required: true }, // Drop Location Name
+    origin: { type: String, required: true },
+    destination: { type: String, required: true },
 
     coordinates: {
       origin: {
@@ -25,17 +23,21 @@ const rideSchema = new mongoose.Schema(
         lat: { type: Number },
         lng: { type: Number },
       },
-    }, // Auto-filled using Map API
+    },
 
-    distance: { type: Number }, // In meters (calculated via API)
-    duration: { type: Number }, // In seconds (calculated via API)
-    fare: { type: Object, required: true }, // Estimated or manual pricing
-    finalFare: { type: Number }, // Final fare after negotiation
-    seatsBooked: { type: Number, default: 1 }, // For carpooling
-    totalSeats: { type: Number, required: true }, // Available seats
+    distance: { type: Number },
+    duration: { type: Number },
 
-    departureTime: { type: Date }, // Scheduled or instant ride time
-    estimatedArrivalTime: { type: Date }, // Auto-calculated based on live traffic
+    fare: { type: Object, required: true },
+    finalFare: { type: Number },
+    customFare: { type: Number, default: null }, // Optional custom fare (ignored for instant rides)
+
+    seatsBooked: { type: Number, default: 1 },
+    totalSeats: { type: Number, required: true },
+    availableSeats: { type: Number }, // For tracking remaining seats in carpool
+
+    departureTime: { type: Date },
+    estimatedArrivalTime: { type: Date },
 
     rideType: {
       type: String,
@@ -43,18 +45,55 @@ const rideSchema = new mongoose.Schema(
       default: "instant",
     },
 
+    scheduledType: {
+      type: String,
+      enum: ["carpool", "cab"],
+      required: function () {
+        return this.rideType === "scheduled";
+      },
+    },
+
     frequency: {
-      type: [String], // ["Monday", "Tuesday", ...] for scheduled rides
+      type: [String],
       default: [],
     },
 
     status: {
       type: String,
-      enum: ["searching", "driver_assigned", "ongoing", "completed", "canceled"],
+      enum: [
+        "searching",
+        "accepted",
+        "scheduled",
+        "ongoing",
+        "completed",
+        "canceled",
+        "expired",
+      ],
       default: "searching",
     },
-    isCaptainCreated: { type: Boolean, default: false }, // true if captain created it
+    canceledBy: {
+      type: String,
+      enum: ["passenger", "captain", "system", null],
+      default: null,
+    },
+    canceledReason: {
+      type: String,
+      enum: [
+        "passenger_no_show",
+        "captain_no_show",
+        "passenger_cancel",
+        "captain_cancel",
+        "system_cancel",
+        null,
+      ],
+      default: null,
+    },
+    isCaptainAccepted: { type: Boolean, default: false },
+    isCaptainCreated: { type: Boolean, default: false },
+    socketId: { type: String, default: null }, // For real-time updates
 
+    otp: { type: String, default: null },
+    otpExpires: { type: Date, default: null, index: { expires: "5m" } }, 
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -75,13 +75,16 @@ async function bookSeatsController(req, res) {
 
     const { ride, otp } = await bookSeatsInRide(rideId, userId, seatsToBook);
 
-    // TODO: Replace this log with real SMS sending logic
-    console.log(`Send this OTP to passenger: ${otp}`);
+    if (otp) {
+      console.log(`Generated OTP for passenger: ${otp}`);
+    } else {
+      console.log(`No new OTP generated. Ride was already scheduled.`);
+    }
 
     res.status(200).json({
       message: "Seats booked successfully!",
       ride,
-      otp, // optionally send to frontend if needed
+      ...(otp && { otp }), // Only include otp if newly generated
     });
   } catch (error) {
     console.error("Book seats error:", error);

@@ -122,17 +122,32 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
 
   if (!ride.userId) ride.userId = userId;
 
+  let otpToSend = null;
+
+  if (ride.status === "searching") {
+    ride.status = "scheduled";
+    otpToSend = generateOtp();
+    ride.otp = otpToSend;
+    ride.otpExpires = null;
+  }
+
   await ride.save();
 
   await userModel.findByIdAndUpdate(userId, {
     $addToSet: { bookedRides: rideId },
   });
 
-  return rideModel.findById(rideId)
+  const updatedRide = await rideModel.findById(rideId)
     .populate("userId", "name email phone")
     .populate("captainId", "name email phone vehicle")
     .lean();
+
+  return {
+    ride: updatedRide,
+    otp: otpToSend, // May be null if ride was already scheduled
+  };
 }
+
 
 async function searchScheduledRides(origin, destination, date) {
   if (!origin || !destination || !date) throw new Error("Origin, destination and date are required");
@@ -150,7 +165,6 @@ async function searchScheduledRides(origin, destination, date) {
     rideType: "scheduled",
     departureTime: { $gte: startOfDay, $lte: endOfDay },
     captainId: { $ne: null },
-    status: { $in: ["searching", "driver_assigned"] },
   }).populate("captainId", "name phone vehicle").lean();
 }
 

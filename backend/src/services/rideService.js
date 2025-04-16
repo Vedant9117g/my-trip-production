@@ -114,16 +114,31 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
   const ride = await rideModel.findById(rideId);
   if (!ride) throw new Error("Ride not found");
 
-  const remainingSeats = ride.totalSeats - ride.seatsBooked;
-  if (seatsToBook > remainingSeats) throw new Error("Not enough available seats");
+  if (ride.scheduledType === "cab") {
+    // For cab, the passenger must book the entire ride
+    if (ride.seatsBooked > 0) throw new Error("This cab is already booked");
+    if (seatsToBook !== ride.totalSeats) throw new Error("You must book the entire cab");
 
-  ride.seatsBooked += seatsToBook;
-  ride.availableSeats -= seatsToBook;
+    ride.seatsBooked = ride.totalSeats;
+    ride.availableSeats = 0;
+    ride.userId = userId; // Assign the passenger to the ride
+  } else if (ride.scheduledType === "carpool") {
+    // For carpool, passengers can book individual seats
+    const remainingSeats = ride.totalSeats - ride.seatsBooked;
+    if (seatsToBook > remainingSeats) throw new Error("Not enough available seats");
 
-  if (!ride.userId) ride.userId = userId;
+    ride.seatsBooked += seatsToBook;
+    ride.availableSeats -= seatsToBook;
 
+    // Add the passenger to the list of users who booked the ride
+    if (!ride.bookedUsers) ride.bookedUsers = [];
+    ride.bookedUsers.push({ userId, seats: seatsToBook });
+  } else {
+    throw new Error("Invalid scheduledType");
+  }
+
+  // Update ride status and generate OTP if necessary
   let otpToSend = null;
-
   if (ride.status === "searching") {
     ride.status = "scheduled";
     otpToSend = generateOtp();
@@ -133,13 +148,16 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
 
   await ride.save();
 
+  // Update the user's booked rides
   await userModel.findByIdAndUpdate(userId, {
     $addToSet: { bookedRides: rideId },
   });
 
+  // Fetch the updated ride and populate user details
   const updatedRide = await rideModel.findById(rideId)
-    .populate("userId", "name email phone")
-    .populate("captainId", "name email phone vehicle")
+    .populate("userId", "name email phone") // Populate user details for cab rides
+    .populate("captainId", "name email phone vehicle") // Populate captain details
+    .populate("bookedUsers.userId", "name email phone") // Populate booked users for carpool
     .lean();
 
   return {
@@ -147,7 +165,7 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
     otp: otpToSend, // May be null if ride was already scheduled
   };
 }
-
+//2
 
 async function searchScheduledRides(origin, destination, date) {
   if (!origin || !destination || !date) throw new Error("Origin, destination and date are required");
@@ -192,6 +210,7 @@ async function getCaptainRides(captainId) {
 
   const allRides = await rideModel.find({ captainId }).sort({ departureTime: 1 })
     .populate("userId", "name phone")
+    .populate("bookedUsers.userId", "name phone")
     .lean();
 
   const active = allRides.filter(ride =>
@@ -209,6 +228,16 @@ async function getCaptainRides(captainId) {
   return { active, settled };
 }
 
+async function getRideBookedUsers(rideId) {
+  const ride = await rideModel
+    .findById(rideId)
+    .populate("bookedUsers.userId", "name email phone") // Populate passenger details
+    .populate("captainId", "name email phone vehicle") // Populate captain details
+    .lean();
+
+  return ride;
+}
+
 module.exports = {
   createRide,
   getFare,
@@ -216,4 +245,5 @@ module.exports = {
   bookSeatsInRide,
   searchScheduledRides,
   getCaptainRides,
+  getRideBookedUsers, // Add this export
 };

@@ -4,7 +4,8 @@ const {
   searchScheduledRidesController,
   getRideByIdController,
   bookSeatsController,
-  getCaptainRidesController
+  getCaptainRidesController,
+  getRideBookedUsersController
 } = require("../controllers/rideController");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 
@@ -15,5 +16,6 @@ router.get("/search-scheduled", isAuthenticated, searchScheduledRidesController)
 router.get("/my-rides", isAuthenticated, getCaptainRidesController); // ✅ Captain home
 router.get("/:id", isAuthenticated, getRideByIdController);
 router.post("/:id/book", isAuthenticated, bookSeatsController);
+router.get("/:id/booked-users", isAuthenticated, getRideBookedUsersController);
 
 module.exports = router;

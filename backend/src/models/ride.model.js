@@ -52,7 +52,12 @@ const rideSchema = new mongoose.Schema(
         return this.rideType === "scheduled";
       },
     },
-
+    bookedUsers: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        seats: { type: Number, required: true }, // Number of seats booked by the user
+      },
+    ],
     frequency: {
       type: [String],
       default: [],
@@ -93,10 +98,12 @@ const rideSchema = new mongoose.Schema(
     socketId: { type: String, default: null }, // For real-time updates
 
     otp: { type: String, default: null },
-    otpExpires: { type: Date, default: null, index: { expires: "5m" } }, 
+    otpExpires: { type: Date, default: null}, 
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model("Ride", rideSchema);
+
+//2

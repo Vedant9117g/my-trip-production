@@ -238,6 +238,40 @@ async function getRideBookedUsers(rideId) {
   return ride;
 }
 
+async function startRide(rideId, captainId, otp) {
+  const ride = await rideModel.findById(rideId);
+  if (!ride) throw new Error("Ride not found");
+
+  // Ensure the captain is authorized to start the ride
+  if (ride.captainId.toString() !== captainId.toString()) {
+    throw new Error("You are not authorized to start this ride");
+  }
+
+  // Ensure the ride is in the scheduled state
+  if (ride.status !== "scheduled") {
+    throw new Error("Ride is not in a scheduled state");
+  }
+
+  // Verify the OTP
+  if (ride.otp !== otp) {
+    throw new Error("Invalid OTP");
+  }
+
+  // Update the ride status to ongoing and clear the OTP
+  ride.status = "ongoing";
+  ride.otp = null; // Clear the OTP after successful verification
+  await ride.save();
+
+  // Return the updated ride
+  const updatedRide = await rideModel.findById(rideId)
+    .populate("userId", "name email phone")
+    .populate("captainId", "name email phone vehicle")
+    .populate("bookedUsers.userId", "name email phone")
+    .lean();
+
+  return updatedRide;
+}
+
 module.exports = {
   createRide,
   getFare,
@@ -246,4 +280,5 @@ module.exports = {
   searchScheduledRides,
   getCaptainRides,
   getRideBookedUsers, // Add this export
+  startRide,
 };

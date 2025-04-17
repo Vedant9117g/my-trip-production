@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useLoadUserQuery, useUpdateUserMutation } from "../features/api/authApi";
+import {
+  useLoadUserQuery,
+  useUpdateUserMutation,
+} from "../features/api/authApi";
 import { toast } from "sonner";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -26,7 +29,13 @@ const Profile = () => {
   const { data, isLoading, refetch } = useLoadUserQuery();
   const [
     updateUser,
-    { data: updateUserData, isLoading: updateUserIsLoading, isError, error, isSuccess },
+    {
+      data: updateUserData,
+      isLoading: updateUserIsLoading,
+      isError,
+      error,
+      isSuccess,
+    },
   ] = useUpdateUserMutation();
 
   const user = data?.user || {};
@@ -34,6 +43,59 @@ const Profile = () => {
 
   const isActive = (departureTime) => dayjs(departureTime).isAfter(now);
   const isSettled = (departureTime) => dayjs(departureTime).isBefore(now);
+
+  // Move fetchRides outside of useEffect
+  const fetchRides = async () => {
+    if (user.role === "captain") {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Unauthorized. Redirecting...");
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/rides/my-rides",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        );
+        setRides(response.data);
+      } catch (error) {
+        console.error("Fetch error:", error);
+        toast.error("Failed to load rides.");
+        if (error.response?.status === 401) {
+          localStorage.removeItem("authToken");
+          navigate("/login");
+        }
+      } finally {
+        setLoadingRides(false);
+      }
+    } else {
+      const rideList = user.bookedRides || [];
+      const now = dayjs();
+
+      // Updated logic for active and settled rides
+      const active = rideList.filter(
+        (ride) =>
+          ride.status !== "completed" &&
+          ride.status !== "canceled" &&
+          (!ride.departureTime || dayjs(ride.departureTime).isAfter(now)) // Time-based logic
+      );
+
+      const settled = rideList.filter(
+        (ride) =>
+          ride.status === "completed" ||
+          ride.status === "canceled" ||
+          (ride.departureTime && dayjs(ride.departureTime).isBefore(now)) // Time-based logic
+      );
+
+      setRides({ active, settled });
+      setLoadingRides(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -53,44 +115,6 @@ const Profile = () => {
   }, [user]);
 
   useEffect(() => {
-    const fetchRides = async () => {
-      if (user.role === "captain") {
-        const token = localStorage.getItem("authToken");
-        if (!token) {
-          toast.error("Unauthorized. Redirecting...");
-          navigate("/login");
-          return;
-        }
-
-        try {
-          const response = await axios.get("http://localhost:5000/api/rides/my-rides", {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
-          });
-          setRides(response.data);
-        } catch (error) {
-          console.error("Fetch error:", error);
-          toast.error("Failed to load rides.");
-          if (error.response?.status === 401) {
-            localStorage.removeItem("authToken");
-            navigate("/login");
-          }
-        } finally {
-          setLoadingRides(false);
-        }
-      } else {
-        const rideList = user.bookedRides || [];
-        const active = rideList.filter(
-          (ride) => ride?.departureTime && isActive(ride.departureTime)
-        );
-        const settled = rideList.filter(
-          (ride) => ride?.departureTime && isSettled(ride.departureTime)
-        );
-        setRides({ active, settled });
-        setLoadingRides(false);
-      }
-    };
-
     if (user?.role) fetchRides();
   }, [user, navigate]);
 
@@ -148,24 +172,42 @@ const Profile = () => {
 
           <div className="w-full">
             <div className="mb-4">
-              <strong className="text-gray-900 dark:text-gray-100">Name:</strong>{" "}
-              <span className="text-gray-700 dark:text-gray-300">{user.name || "N/A"}</span>
+              <strong className="text-gray-900 dark:text-gray-100">
+                Name:
+              </strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">
+                {user.name || "N/A"}
+              </span>
             </div>
             <div className="mb-4">
-              <strong className="text-gray-900 dark:text-gray-100">Email:</strong>{" "}
-              <span className="text-gray-700 dark:text-gray-300">{user.email || "N/A"}</span>
+              <strong className="text-gray-900 dark:text-gray-100">
+                Email:
+              </strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">
+                {user.email || "N/A"}
+              </span>
             </div>
             <div className="mb-4">
-              <strong className="text-gray-900 dark:text-gray-100">Phone:</strong>{" "}
-              <span className="text-gray-700 dark:text-gray-300">{user.phone || "N/A"}</span>
+              <strong className="text-gray-900 dark:text-gray-100">
+                Phone:
+              </strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">
+                {user.phone || "N/A"}
+              </span>
             </div>
             <div className="mb-4">
-              <strong className="text-gray-900 dark:text-gray-100">Role:</strong>{" "}
-              <span className="text-gray-700 dark:text-gray-300">{user.role?.toUpperCase()}</span>
+              <strong className="text-gray-900 dark:text-gray-100">
+                Role:
+              </strong>{" "}
+              <span className="text-gray-700 dark:text-gray-300">
+                {user.role?.toUpperCase()}
+              </span>
             </div>
             {user.role === "captain" && user.vehicle && (
               <div className="mb-4">
-                <strong className="text-gray-900 dark:text-gray-100">Vehicle:</strong>{" "}
+                <strong className="text-gray-900 dark:text-gray-100">
+                  Vehicle:
+                </strong>{" "}
                 <span className="text-gray-700 dark:text-gray-300">
                   {user.vehicle.vehicleType} - {user.vehicle.model} (
                   {user.vehicle.numberPlate})
@@ -191,25 +233,41 @@ const Profile = () => {
         </h2>
 
         {/* Active Rides */}
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Active</h3>
+        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+          Active
+        </h3>
         {rides.active.length === 0 ? (
-          <p className="text-gray-600 dark:text-gray-400 mb-4">No active rides.</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            No active rides.
+          </p>
         ) : (
           <div className="space-y-4 mb-6">
             {rides.active.map((ride) => (
-              <RideCard key={ride._id} ride={ride} userRole={user.role} />
+              <RideCard
+                key={ride._id}
+                ride={ride}
+                userRole={user.role}
+                onRideUpdate={fetchRides}
+              />
             ))}
           </div>
         )}
 
         {/* Settled Rides */}
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Settled</h3>
+        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+          Settled
+        </h3>
         {rides.settled.length === 0 ? (
           <p className="text-gray-600 dark:text-gray-400">No settled rides.</p>
         ) : (
           <div className="space-y-4">
             {rides.settled.map((ride) => (
-              <RideCard key={ride._id} ride={ride} userRole={user.role} />
+              <RideCard
+                key={ride._id}
+                ride={ride}
+                userRole={user.role}
+                onRideUpdate={fetchRides}
+              />
             ))}
           </div>
         )}

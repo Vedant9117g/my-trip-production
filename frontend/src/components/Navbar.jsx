@@ -24,11 +24,22 @@ const Navbar = () => {
     }
   };
 
+  const handleRideFinderClick = () => {
+    if (user?.role === "captain") {
+      navigate("/captain"); // Navigate to Captain Dashboard
+    } else {
+      navigate("/"); // Navigate to Home for passengers
+    }
+  };
+
   return (
     <nav className="sticky top-0 bg-gray-200 dark:bg-gray-800 p-4 flex justify-between items-center shadow-md z-50">
-      <Link to="/" className="text-xl font-semibold text-gray-900 dark:text-white">
+      <button
+        onClick={handleRideFinderClick}
+        className="text-xl font-semibold text-gray-900 dark:text-white"
+      >
         Ride Finder
-      </Link>
+      </button>
 
       <div className="flex items-center gap-4">
         {user ? (

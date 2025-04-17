@@ -1,7 +1,66 @@
-import React from "react";
+import React, { useState } from "react";
 import dayjs from "dayjs";
+import axios from "axios";
+import CancelRideDialog from "./CancelRideDialog";
 
-const RideCard = ({ ride, userRole }) => {
+const RideCard = ({ ride, userRole, onRideUpdate }) => {
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  const handleStartRide = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:5000/api/rides/start",
+        { rideId: ride._id, otp },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          withCredentials: true,
+        }
+      );
+      alert(response.data.message);
+      onRideUpdate();
+    } catch (error) {
+      console.error("Start ride error:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Failed to start the ride");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelRide = async (reason) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:5000/api/rides/cancel",
+        {
+          rideId: ride._id,
+          reason,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          withCredentials: true,
+        }
+      );
+      alert(response.data.message);
+      onRideUpdate();
+    } catch (error) {
+      console.error(
+        "Cancel ride error:",
+        error.response?.data || error.message
+      );
+      alert(error.response?.data?.message || "Failed to cancel the ride");
+    } finally {
+      setLoading(false);
+      setShowCancelDialog(false);
+    }
+  };
+
   return (
     <div className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
       <p className="text-gray-900 dark:text-white font-medium">
@@ -26,35 +85,39 @@ const RideCard = ({ ride, userRole }) => {
           : ride.seatsBooked}
       </p>
 
-      {/* Display passenger details for cab rides */}
-      {userRole === "captain" && ride.scheduledType === "cab" && ride.userId && (
-        <div className="mt-4">
-          <strong className="text-gray-900 dark:text-white">Passenger:</strong>
-          <p className="text-gray-700 dark:text-gray-300">
-            {ride.userId.name} ({ride.userId.phone})
-          </p>
-        </div>
-      )}
+      {/* Passenger info for captains */}
+      {userRole === "captain" &&
+        ride.scheduledType === "cab" &&
+        ride.userId && (
+          <div className="mt-4">
+            <strong className="text-gray-900 dark:text-white">
+              Passenger:
+            </strong>
+            <p className="text-gray-700 dark:text-gray-300">
+              {ride.userId.name} ({ride.userId.phone})
+            </p>
+          </div>
+        )}
 
-      {/* Display passenger details for carpool rides */}
       {userRole === "captain" &&
         ride.scheduledType === "carpool" &&
-        ride.bookedUsers &&
-        ride.bookedUsers.length > 0 && (
+        ride.bookedUsers?.length > 0 && (
           <div className="mt-4">
-            <strong className="text-gray-900 dark:text-white">Passengers:</strong>
+            <strong className="text-gray-900 dark:text-white">
+              Passengers:
+            </strong>
             <ul className="text-gray-700 dark:text-gray-300">
               {ride.bookedUsers.map((user) => (
                 <li key={user.userId?._id}>
-                  {user.userId?.name || "Unknown"} ({user.userId?.phone || "N/A"}) -{" "}
-                  {user.seats} seat(s)
+                  {user.userId?.name || "Unknown"} (
+                  {user.userId?.phone || "N/A"}) - {user.seats} seat(s)
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-      {/* Display captain details for passengers */}
+      {/* Captain info for passengers */}
       {userRole === "passenger" && ride.captainId && (
         <div className="mt-4">
           <strong className="text-gray-900 dark:text-white">Captain:</strong>
@@ -63,9 +126,56 @@ const RideCard = ({ ride, userRole }) => {
           </p>
           <p className="text-gray-700 dark:text-gray-300">
             <strong>Vehicle:</strong> {ride.captainId.vehicle.vehicleType} -{" "}
-            {ride.captainId.vehicle.model} ({ride.captainId.vehicle.numberPlate})
+            {ride.captainId.vehicle.model} ({ride.captainId.vehicle.numberPlate}
+            )
           </p>
         </div>
+      )}
+
+      {/* Start ride (for captains only) */}
+      {userRole === "captain" && ride.status === "scheduled" && (
+        <div className="mt-4">
+          <input
+            type="text"
+            placeholder="Enter OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            className="p-2 border rounded w-full mb-2"
+          />
+          <button
+            onClick={handleStartRide}
+            disabled={loading || !otp}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {loading ? "Starting Ride..." : "Start Ride"}
+          </button>
+        </div>
+      )}
+
+      {/* Cancel ride (for both roles) */}
+      {ride.status === "scheduled" && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowCancelDialog(true)}
+            disabled={loading}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+          >
+            Cancel Ride
+          </button>
+        </div>
+      )}
+
+      {/* Cancel Dialog */}
+      {showCancelDialog && (
+        <CancelRideDialog
+          rideId={ride._id}
+          userRole={userRole}
+          onClose={() => setShowCancelDialog(false)}
+          onSuccess={() => {
+            setShowCancelDialog(false);
+            onRideUpdate();
+          }}
+        />
       )}
     </div>
   );

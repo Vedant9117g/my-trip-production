@@ -1,10 +1,14 @@
 // rideController.js
+
+const rideModel = require("../models/ride.model"); // Import rideModel
+
 const {
   createRide,
   searchScheduledRides,
   getRideById,
   bookSeatsInRide,
-  getCaptainRides
+  getCaptainRides,
+  startRide,
 } = require("../services/rideService");
 
 async function createRideController(req, res) {
@@ -123,6 +127,77 @@ async function getRideBookedUsersController(req, res) {
   }
 }
 
+
+async function startRideController(req, res) {
+  try {
+    const { rideId, otp } = req.body;
+    const captainId = req.user._id;
+
+    console.log("Start Ride Request:", { rideId, otp, captainId });
+
+    const ride = await startRide(rideId, captainId, otp);
+
+    res.status(200).json({ message: "Ride started successfully", ride });
+  } catch (error) {
+    console.error("Start ride error:", error);
+    res.status(400).json({ message: error.message });
+  }
+}
+
+async function cancelRideController(req, res) {
+  try {
+    const { rideId, reason } = req.body;
+    const userId = req.user._id;
+    const role = req.user.role;
+
+    console.log("Cancel Ride Request:", { rideId, reason, userId, role });
+
+    const ride = await rideModel.findById(rideId);
+    if (!ride) {
+      console.error("Ride not found");
+      return res.status(404).json({ message: "Ride not found" });
+    }
+
+    if (ride.status !== "scheduled") {
+      console.error("Ride is not in a scheduled state");
+      return res.status(400).json({ message: "Only scheduled rides can be canceled" });
+    }
+
+    if (role === "captain" && ride.captainId.toString() !== userId.toString()) {
+      console.error("Unauthorized captain");
+      return res.status(403).json({ message: "You are not authorized to cancel this ride" });
+    }
+
+    if (role === "passenger" && ride.userId.toString() !== userId.toString()) {
+      console.error("Unauthorized passenger");
+      return res.status(403).json({ message: "You are not authorized to cancel this ride" });
+    }
+
+    // Provide a default valid reason if none is provided
+    let validReason = reason;
+    if (!reason) {
+      if (role === "passenger") {
+        validReason = "change_of_plans"; // Default reason for passengers
+      } else if (role === "captain") {
+        validReason = "ride_conflict"; // Default reason for captains
+      } else {
+        validReason = "ride_expired"; // Default reason for the system
+      }
+    }
+
+    ride.status = "canceled";
+    ride.canceledBy = role;
+    ride.canceledReason = validReason; // Use the valid reason
+    await ride.save();
+
+    console.log("Ride canceled successfully");
+    res.status(200).json({ message: "Ride canceled successfully", ride });
+  } catch (error) {
+    console.error("Cancel ride error:", error);
+    res.status(500).json({ message: "Failed to cancel the ride" });
+  }
+}
+
 module.exports = {
   createRideController,
   searchScheduledRidesController,
@@ -130,4 +205,6 @@ module.exports = {
   bookSeatsController,
   getCaptainRidesController,
   getRideBookedUsersController, // Add this export
+  startRideController,
+  cancelRideController,
 };

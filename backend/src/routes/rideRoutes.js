@@ -5,7 +5,9 @@ const {
   getRideByIdController,
   bookSeatsController,
   getCaptainRidesController,
-  getRideBookedUsersController
+  getRideBookedUsersController,
+  startRideController,
+  cancelRideController
 } = require("../controllers/rideController");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 
@@ -17,5 +19,6 @@ router.get("/my-rides", isAuthenticated, getCaptainRidesController); // ✅ Capt
 router.get("/:id", isAuthenticated, getRideByIdController);
 router.post("/:id/book", isAuthenticated, bookSeatsController);
 router.get("/:id/booked-users", isAuthenticated, getRideBookedUsersController);
-
+router.post("/start", isAuthenticated, startRideController); // Start a ride
+router.post("/cancel", isAuthenticated, cancelRideController); // Cancel a ride
 module.exports = router;

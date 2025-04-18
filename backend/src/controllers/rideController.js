@@ -10,6 +10,7 @@ const {
   getCaptainRides,
   startRide,
   completeRide,
+  getFare,
 } = require("../services/rideService");
 
 async function createRideController(req, res) {
@@ -215,6 +216,23 @@ async function completeRideController(req, res) {
   }
 }
 
+
+async function getFareController(req, res) {
+  try {
+    const { origin, destination } = req.query;
+
+    if (!origin || !destination) {
+      return res.status(400).json({ message: "Origin and destination are required" });
+    }
+
+    const fareDetails = await getFare(origin, destination);
+    res.status(200).json(fareDetails);
+  } catch (error) {
+    console.error("Error fetching fare details:", error);
+    res.status(500).json({ message: "Failed to fetch fare details" });
+  }
+}
+
 module.exports = {
   createRideController,
   searchScheduledRidesController,
@@ -225,4 +243,5 @@ module.exports = {
   startRideController,
   cancelRideController,
   completeRideController,
+  getFareController,
 };

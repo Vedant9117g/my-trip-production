@@ -61,6 +61,30 @@ const RideCard = ({ ride, userRole, onRideUpdate }) => {
     }
   };
 
+  const handleCompleteRide = async () => {
+  try {
+    setLoading(true);
+    const response = await axios.post(
+      "http://localhost:5000/api/rides/complete",
+      { rideId: ride._id },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        withCredentials: true,
+      }
+    );
+    alert(response.data.message);
+    onRideUpdate(); // Refresh the ride list
+  } catch (error) {
+    console.error("Complete ride error:", error.response?.data || error.message);
+    alert(error.response?.data?.message || "Failed to complete the ride");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   return (
     <div className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
       <p className="text-gray-900 dark:text-white font-medium">
@@ -177,6 +201,19 @@ const RideCard = ({ ride, userRole, onRideUpdate }) => {
           }}
         />
       )}
+
+      {/* Existing RideCard content */}
+    {ride.status === "ongoing" && userRole === "captain" && (
+      <div className="mt-4">
+        <button
+          onClick={handleCompleteRide}
+          disabled={loading}
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+        >
+          {loading ? "Completing Ride..." : "Complete Ride"}
+        </button>
+      </div>
+    )}
     </div>
   );
 };

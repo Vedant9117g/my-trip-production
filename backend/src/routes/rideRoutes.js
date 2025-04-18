@@ -7,7 +7,8 @@ const {
   getCaptainRidesController,
   getRideBookedUsersController,
   startRideController,
-  cancelRideController
+  cancelRideController,
+  completeRideController
 } = require("../controllers/rideController");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 
@@ -20,5 +21,7 @@ router.get("/:id", isAuthenticated, getRideByIdController);
 router.post("/:id/book", isAuthenticated, bookSeatsController);
 router.get("/:id/booked-users", isAuthenticated, getRideBookedUsersController);
 router.post("/start", isAuthenticated, startRideController); // Start a ride
-router.post("/cancel", isAuthenticated, cancelRideController); // Cancel a ride
+router.post("/cancel", isAuthenticated, cancelRideController);
+router.post("/complete", isAuthenticated, completeRideController); 
+
 module.exports = router;

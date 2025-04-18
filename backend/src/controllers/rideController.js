@@ -9,6 +9,7 @@ const {
   bookSeatsInRide,
   getCaptainRides,
   startRide,
+  completeRide,
 } = require("../services/rideService");
 
 async function createRideController(req, res) {
@@ -198,6 +199,22 @@ async function cancelRideController(req, res) {
   }
 }
 
+async function completeRideController(req, res) {
+  try {
+    const { rideId } = req.body;
+    const captainId = req.user._id;
+
+    console.log("Complete Ride Request:", { rideId, captainId });
+
+    const ride = await completeRide(rideId, captainId);
+
+    res.status(200).json({ message: "Ride completed successfully", ride });
+  } catch (error) {
+    console.error("Complete ride error:", error);
+    res.status(400).json({ message: error.message });
+  }
+}
+
 module.exports = {
   createRideController,
   searchScheduledRidesController,
@@ -207,4 +224,5 @@ module.exports = {
   getRideBookedUsersController, // Add this export
   startRideController,
   cancelRideController,
+  completeRideController,
 };

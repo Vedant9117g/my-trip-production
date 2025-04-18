@@ -272,6 +272,34 @@ async function startRide(rideId, captainId, otp) {
   return updatedRide;
 }
 
+async function completeRide(rideId, captainId) {
+  const ride = await rideModel.findById(rideId);
+  if (!ride) throw new Error("Ride not found");
+
+  // Ensure the captain is authorized to complete the ride
+  if (ride.captainId.toString() !== captainId.toString()) {
+    throw new Error("You are not authorized to complete this ride");
+  }
+
+  // Ensure the ride is in the ongoing state
+  if (ride.status !== "ongoing") {
+    throw new Error("Ride is not in an ongoing state");
+  }
+
+  // Update the ride status to completed
+  ride.status = "completed";
+  await ride.save();
+
+  // Return the updated ride
+  const updatedRide = await rideModel.findById(rideId)
+    .populate("userId", "name email phone")
+    .populate("captainId", "name email phone vehicle")
+    .populate("bookedUsers.userId", "name email phone")
+    .lean();
+
+  return updatedRide;
+}
+
 module.exports = {
   createRide,
   getFare,
@@ -281,4 +309,5 @@ module.exports = {
   getCaptainRides,
   getRideBookedUsers, // Add this export
   startRide,
+  completeRide,
 };

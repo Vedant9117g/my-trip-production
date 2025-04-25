@@ -1,6 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import LocationSearchPanel from "../components/passanger/LocationSearchPanel";
+import { SocketContext } from "../context/SocketContext"; // Import SocketContext
+import { useLoadUserQuery } from "../features/api/authApi"; // Import the hook to fetch user data
 
 const Home = () => {
   const [origin, setOrigin] = useState("");
@@ -17,6 +20,29 @@ const Home = () => {
   const panelRef = useRef(null);
 
   const navigate = useNavigate();
+  const { socket } = useContext(SocketContext); // Access the socket instance
+  const { data: userData, isLoading } = useLoadUserQuery(); // Fetch user data
+
+  useEffect(() => {
+    if (!isLoading && userData?.user) {
+      const userId = userData.user._id; // Extract userId from the fetched user data
+      if (userId && !socket.hasEmittedJoin) {
+        socket.emit("join", { userId }); // Emit the join event with userId
+        socket.hasEmittedJoin = true; // Mark that the join event has been emitted
+        console.log("Emitted 'join' event with userId:", userId);
+      }
+    }
+
+    // Listen for server responses
+    socket.on("joinSuccess", (message) => {
+      console.log("Server response to join:", message);
+    });
+
+    return () => {
+      // Clean up the event listener
+      socket.off("joinSuccess");
+    };
+  }, [socket, isLoading, userData]);
 
   const fetchSuggestions = async (input) => {
     if (!input) return;
@@ -288,7 +314,9 @@ const Home = () => {
       {/* Floating Component for Instant Ride */}
       {showFareComponent && fareDetails && (
         <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-80">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Select Vehicle Type</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+            Select Vehicle Type
+          </h3>
           <div className="space-y-2">
             {["car", "bike", "auto"].map((type) => (
               <button
@@ -301,7 +329,8 @@ const Home = () => {
                 }`}
                 disabled={loading}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)} - ₹{fareDetails[type]}
+                {type.charAt(0).toUpperCase() + type.slice(1)} - ₹
+                {fareDetails[type]}
               </button>
             ))}
           </div>

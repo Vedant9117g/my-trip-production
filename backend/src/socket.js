@@ -1,46 +1,108 @@
-const { Server } = require("socket.io");
+const socketIo = require("socket.io");
+const User = require("./models/User"); // Adjust path as needed
 
-// In-memory mapping of user IDs to socket IDs
-const userSocketMap = new Map();
+let io;
+const userSocketMap = new Map(); // Map to store userId and socketId mappings
 
-function setupSocket(server) {
-  const io = new Server(server, {
+function initializeSocket(server) {
+  io = socketIo(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: "*",
       methods: ["GET", "POST"],
+      Credentials: true,
     },
   });
 
   io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log(`Client connected: ${socket.id}`);
 
-    // Listen for user authentication and map user ID to socket ID
-    socket.on("join", (userId) => {
-      userSocketMap.set(userId, socket.id); // Map user ID to socket ID
-      console.log(`User ${userId} joined with socket ID ${socket.id}`);
-      console.log("Current userSocketMap:", Array.from(userSocketMap.entries())); // Debugging log
+    // Listen for the "join" event with an object containing userId
+    socket.on("join", async (data) => {
+      const { userId } = data; // Extract userId from the object
+      if (!userId) {
+        console.log("No userId provided for join event");
+        return;
+      }
+
+      try {
+        // Fetch the user from the database
+        const user = await User.findById(userId);
+        if (!user) {
+          console.log("User not found");
+          return;
+        }
+
+        console.log(`Fetched user: ${user.name}, Role: ${user.role}`); // Debugging log
+
+        // Map userId to socketId
+        userSocketMap.set(userId, socket.id);
+        console.log(`User ${userId} (${user.name}) joined with socket ID ${socket.id}`);
+
+        // Update the user's socketId in the database
+        user.socketId = socket.id;
+        await user.save();
+        console.log(`Updated socketId for user ${userId} in the database`);
+
+        // Send a success message back to the client
+        socket.emit("joinSuccess", `Welcome, ${user.name}!`);
+
+        // Log based on role
+        switch (user.role) {
+          case "passenger":
+            console.log(`Passenger ${user.name} is now connected`);
+            break;
+          case "captain":
+            console.log(`Captain ${user.name} is now online`);
+            break;
+          case "both":
+            console.log(`User ${user.name} has both roles and is connected`);
+            break;
+          default:
+            console.log(`User ${user.name} with unknown role joined`);
+        }
+      } catch (err) {
+        console.error("Error processing join event:", err.message);
+      }
     });
 
     // Handle user disconnect
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`User disconnected: ${socket.id}`);
+
       // Remove the user from the map
       for (const [userId, socketId] of userSocketMap.entries()) {
         if (socketId === socket.id) {
           userSocketMap.delete(userId);
-          console.log(`Removed user ${userId} from socket map`);
+          console.log(`Removed user ${userId} from userSocketMap`);
+
+          // Clear the user's socketId in the database
+          try {
+            const user = await User.findById(userId);
+            if (user) {
+              user.socketId = null;
+              await user.save();
+              console.log(`Cleared socketId for user ${userId} in the database`);
+            }
+          } catch (err) {
+            console.error(`Error clearing socketId for user ${userId}:`, err.message);
+          }
+
           break;
         }
       }
     });
   });
-
-  return io;
 }
 
-// Function to get socket ID from user ID
-function getSocketIdFromUserId(userId) {
-  return userSocketMap.get(userId);
+const sendMessageToSocketId = (socketId, messageObject) => {
+
+  console.log(`Sending message to ${socketId}`, messageObject);
+
+  if (io) {
+      io.to(socketId).emit(messageObject.event, messageObject.data);
+  } else {
+      console.log('Socket.io not initialized.');
+  }
 }
 
-module.exports = { setupSocket, getSocketIdFromUserId };
+module.exports = { initializeSocket , sendMessageToSocketId };

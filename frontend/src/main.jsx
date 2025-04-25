@@ -7,19 +7,24 @@ import { appStore } from "./app/store";
 import { Toaster } from "./components/ui/sonner";
 import { useLoadUserQuery } from "./features/api/authApi";
 import LoadingSpinner from "./components/LoadingSpinner";
+import { SocketProvider } from "./context/SocketContext"; 
+
 
 const Custom = ({ children }) => {
-  const { isLoading } = useLoadUserQuery();
-  return <>{isLoading ? <LoadingSpinner/> : <>{children}</>}</>;
+  const { data: user, isLoading } = useLoadUserQuery();
+
+  return <>{isLoading ? <LoadingSpinner /> : <>{children}</>}</>;
 };
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={appStore}>
-      <Custom>
-        <App />
-        <Toaster />
-      </Custom>
+      <SocketProvider>
+        <Custom>
+          <App />
+          <Toaster />
+        </Custom>
+      </SocketProvider>
     </Provider>
   </StrictMode>
-);
+); 

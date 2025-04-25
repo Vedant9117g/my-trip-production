@@ -1,3 +1,4 @@
+
 const express = require("express");
 const http = require("http");
 const dotenv = require("dotenv");
@@ -5,7 +6,7 @@ dotenv.config();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
-const { setupSocket } = require("./socket");
+const { initializeSocket } = require("./socket"); // Import initializeSocket
 
 const mapRoutes = require("./routes/mapRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -14,10 +15,22 @@ const rideRoutes = require("./routes/rideRoutes");
 connectDB();
 
 const app = express();
-const server = http.createServer(app);
-const io = setupSocket(server); // Initialize Socket.io
+const server = http.createServer(app); // Initialize the server here
 
-app.use(cors({ origin: "http://localhost:5174", credentials: true }));
+const io = initializeSocket(server); // Pass the server to initializeSocket
+
+const allowedOrigins = [
+  "http://localhost:5174", // Local development
+  "https://86gwq826-5174.inc1.devtunnels.ms", // Forwarded URL
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true, 
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 

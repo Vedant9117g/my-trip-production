@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useContext } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { SocketContext } from "../context/SocketContext"; // Import SocketContext
+import { useLoadUserQuery } from "../features/api/authApi";
 
 const RideCard = ({ ride }) => {
   return (
@@ -11,7 +13,8 @@ const RideCard = ({ ride }) => {
         {ride.origin} → {ride.destination}
       </p>
       <p className="text-gray-700 dark:text-gray-300">
-        <strong>Departure:</strong> {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
+        <strong>Departure:</strong>{" "}
+        {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
       </p>
       <p className="text-gray-700 dark:text-gray-300">
         <strong>Fare:</strong> ₹{ride.finalFare}
@@ -40,6 +43,9 @@ const CaptainHome = () => {
     vehicleType: "car",
     customFare: "",
   });
+
+  const { socket } = useContext(SocketContext); // Access the socket instance
+  const { data: userData, isLoading } = useLoadUserQuery();
   const navigate = useNavigate();
 
   const fetchRides = async () => {
@@ -51,10 +57,13 @@ const CaptainHome = () => {
     }
 
     try {
-      const response = await axios.get("http://localhost:5000/api/rides/my-rides", {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/rides/my-rides",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
 
       setActiveRides(response.data.active || []);
       setSettledRides(response.data.settled || []);
@@ -69,6 +78,28 @@ const CaptainHome = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Emit the "join" event with the userId when the component mounts
+    if (!isLoading && userData?.user) {
+      const userId = userData.user._id; // Extract userId from the fetched user data
+      if (userId && !socket.hasEmittedJoin) {
+        socket.emit("join", { userId }); // Emit the join event with userId
+        socket.hasEmittedJoin = true; // Mark that the join event has been emitted
+        console.log("Emitted 'join' event with userId:", userId);
+      }
+    }
+
+    // Listen for server responses
+    socket.on("joinSuccess", (message) => {
+      console.log("Server response to join:", message);
+    });
+
+    return () => {
+      // Clean up the event listener
+      socket.off("joinSuccess");
+    };
+  }, [socket, isLoading, userData]);
 
   useEffect(() => {
     fetchRides();
@@ -90,16 +121,22 @@ const CaptainHome = () => {
 
     const payload = { ...formData, totalSeats: Number(formData.totalSeats) };
     if (payload.scheduledType === "cab") {
-      payload.customFare = payload.customFare ? Number(payload.customFare) : undefined;
+      payload.customFare = payload.customFare
+        ? Number(payload.customFare)
+        : undefined;
     } else {
       delete payload.customFare;
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/api/rides/create", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/rides/create",
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
 
       toast.success(response.data.message || "Ride created successfully!");
       setFormData({
@@ -124,11 +161,15 @@ const CaptainHome = () => {
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
       <div className="w-full max-w-4xl bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-        <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-4">Captain Dashboard</h2>
+        <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-4">
+          Captain Dashboard
+        </h2>
 
         {/* Publish Ride Form */}
         <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Publish a New Ride</h3>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Publish a New Ride
+          </h3>
           <form onSubmit={handlePublishRide} className="space-y-4">
             <input
               type="text"
@@ -200,7 +241,10 @@ const CaptainHome = () => {
               />
             )}
 
-            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            >
               Publish Ride
             </button>
           </form>
@@ -208,9 +252,13 @@ const CaptainHome = () => {
 
         {/* Active Rides */}
         <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Active Rides</h3>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Active Rides
+          </h3>
           {activeRides.length === 0 ? (
-            <p className="text-gray-600 dark:text-gray-400">No active rides found.</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              No active rides found.
+            </p>
           ) : (
             <div className="space-y-4">
               {activeRides.map((ride) => (
@@ -222,9 +270,13 @@ const CaptainHome = () => {
 
         {/* Settled Rides */}
         <div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Settled Rides</h3>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Settled Rides
+          </h3>
           {settledRides.length === 0 ? (
-            <p className="text-gray-600 dark:text-gray-400">No settled rides found.</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              No settled rides found.
+            </p>
           ) : (
             <div className="space-y-4">
               {settledRides.map((ride) => (

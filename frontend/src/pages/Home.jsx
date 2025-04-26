@@ -44,6 +44,12 @@ const Home = () => {
     };
   }, [socket, isLoading, userData]);
 
+  useEffect(() => {
+      if (!isLoading && userData?.user) {
+        console.log("User socketId:", userData.user.socketId); // Log the socketId
+      }
+    }, [isLoading, userData]);
+
   const fetchSuggestions = async (input) => {
     if (!input) return;
     try {

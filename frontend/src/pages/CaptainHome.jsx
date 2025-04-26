@@ -102,8 +102,32 @@ const CaptainHome = () => {
   }, [socket, isLoading, userData]);
 
   useEffect(() => {
+    // Ensure the "new-ride" event listener is registered only once
+    const handleNewRide = (data) => {
+      console.log("New ride received:", data);
+    };
+  
+    // Remove any existing listener before adding a new one
+    socket.off("new-ride");
+    socket.on("new-ride", handleNewRide);
+  
+    // Cleanup the event listener when the component unmounts
+    return () => {
+      socket.off("new-ride", handleNewRide);
+    };
+  }, [socket]);
+
+
+  useEffect(() => {
     fetchRides();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!isLoading && userData?.user) {
+      console.log("User socketId:", userData.user.socketId); // Log the socketId
+    }
+  }, [isLoading, userData]);
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

@@ -66,31 +66,9 @@ function initializeSocket(server) {
     });
 
     // Handle user disconnect
-    socket.on("disconnect", async () => {
-      console.log(`User disconnected: ${socket.id}`);
-
-      // Remove the user from the map
-      for (const [userId, socketId] of userSocketMap.entries()) {
-        if (socketId === socket.id) {
-          userSocketMap.delete(userId);
-          console.log(`Removed user ${userId} from userSocketMap`);
-
-          // Clear the user's socketId in the database
-          try {
-            const user = await User.findById(userId);
-            if (user) {
-              user.socketId = null;
-              await user.save();
-              console.log(`Cleared socketId for user ${userId} in the database`);
-            }
-          } catch (err) {
-            console.error(`Error clearing socketId for user ${userId}:`, err.message);
-          }
-
-          break;
-        }
-      }
-    });
+    socket.on('disconnect', () => {
+      console.log(`user disconnected: ${socket.id}`);
+  });
   });
 }
 
@@ -106,3 +84,4 @@ const sendMessageToSocketId = (socketId, messageObject) => {
 }
 
 module.exports = { initializeSocket , sendMessageToSocketId };
+

@@ -43,7 +43,8 @@ async function createRideController(req, res) {
       scheduledType,
       customFare
     );
-
+    console.log("Ride created successfully. Ride data:", ride);
+    
     res.status(201).json({ message: "Ride created successfully!", ride });
   } catch (error) {
     console.error("Create ride error:", error);
@@ -112,6 +113,7 @@ async function getCaptainRidesController(req, res) {
 
 
 const { getRideBookedUsers } = require("../services/rideService");
+const { broadcastRideRequestToCaptains } = require("../socket");
 
 async function getRideBookedUsersController(req, res) {
   try {

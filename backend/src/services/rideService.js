@@ -3,6 +3,7 @@ const rideModel = require("../models/ride.model");
 const userModel = require("../models/User");
 const mapService = require("./mapService");
 const crypto = require("crypto");
+const { sendMessageToSocketId } = require("../socket");
 
 function extractMainCity(place) {
   if (!place) return "";
@@ -97,7 +98,25 @@ async function createRide(
   populatedRide.otp = otp;
 
   if (rideType === "instant" && role === "passenger") {
-    notifyCaptains(originCoords, populatedRide, io);
+    // Fetch captains with valid socketId
+    const captains = await userModel.find({ // Use userModel instead of User
+      role: { $in: ["captain", "both"] },
+      socketId: { $ne: null }, // Only captains with valid socketId
+    }).select("socketId name");
+
+    console.log(`Found ${captains.length} captains to notify.`);
+
+    captains.forEach((captain) => {
+      try {
+        sendMessageToSocketId(captain.socketId, {
+          event: "new-ride",
+          data: populatedRide,
+        });
+        console.log(`Ride sent to captain ${captain.name} (${captain.socketId})`);
+      } catch (error) {
+        console.error(`Failed to send ride to captain ${captain.name}:`, error.message);
+      }
+    });
   }
 
   return populatedRide;

@@ -50,6 +50,17 @@ const Home = () => {
       }
     }, [isLoading, userData]);
 
+    useEffect(() => {
+      socket.on("rideAccepted", (data) => {
+        console.log("Ride accepted by captain:", data);
+        alert(`Your ride has been accepted by ${data.captain.name}.`);
+      });
+    
+      return () => {
+        socket.off("rideAccepted");
+      };
+    }, [socket]);
+
   const fetchSuggestions = async (input) => {
     if (!input) return;
     try {

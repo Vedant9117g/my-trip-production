@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { SocketContext } from "../context/SocketContext"; // Import SocketContext
 import { useLoadUserQuery } from "../features/api/authApi";
+import RideRequestPopup from "../components/RideRequestPopup";
 
 const RideCard = ({ ride }) => {
   return (
@@ -33,6 +34,7 @@ const CaptainHome = () => {
   const [activeRides, setActiveRides] = useState([]);
   const [settledRides, setSettledRides] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ride, setRide] = useState(null);
   const [formData, setFormData] = useState({
     origin: "",
     destination: "",
@@ -105,6 +107,7 @@ const CaptainHome = () => {
     // Ensure the "new-ride" event listener is registered only once
     const handleNewRide = (data) => {
       console.log("New ride received:", data);
+      setRide(data);
     };
   
     // Remove any existing listener before adding a new one
@@ -116,6 +119,41 @@ const CaptainHome = () => {
       socket.off("new-ride", handleNewRide);
     };
   }, [socket]);
+
+  const handleAcceptRide = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        toast.error("Unauthorized. Redirecting to login...");
+        navigate("/login");
+        return;
+      }
+  
+      const response = await axios.post(
+        `http://localhost:5000/api/rides/${ride._id}/accept`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
+  
+      toast.success("Ride accepted successfully!");
+      console.log("Ride accepted:", response.data.ride);
+  
+      // Clear the popup after accepting
+      setRide(null);
+    } catch (error) {
+      console.error("Error accepting ride:", error);
+      toast.error(error.response?.data?.message || "Failed to accept the ride.");
+    }
+  };
+
+  const handleRejectRide = () => {
+    console.log("Ride rejected:", ride);
+    toast.error("Ride rejected!");
+    setRide(null); // Clear the popup after rejecting
+  };
 
 
   useEffect(() => {
@@ -184,7 +222,7 @@ const CaptainHome = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-4xl bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+      <div className=" bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
         <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-4">
           Captain Dashboard
         </h2>
@@ -310,6 +348,12 @@ const CaptainHome = () => {
           )}
         </div>
       </div>
+
+      <RideRequestPopup
+        ride={ride}
+        onAccept={handleAcceptRide}
+        onReject={handleRejectRide}
+      />
     </div>
   );
 };

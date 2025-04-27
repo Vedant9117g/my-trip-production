@@ -9,7 +9,8 @@ const {
   startRideController,
   cancelRideController,
   completeRideController,
-  getFareController
+  getFareController,
+  acceptRideController
 } = require("../controllers/rideController");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 
@@ -26,5 +27,10 @@ router.get("/:id/booked-users", isAuthenticated, getRideBookedUsersController);
 router.post("/start", isAuthenticated, startRideController); // Start a ride
 router.post("/cancel", isAuthenticated, cancelRideController);
 router.post("/complete", isAuthenticated, completeRideController); 
+
+
+// routes for instant ride .
+router.post("/:id/accept", isAuthenticated, acceptRideController); // Add this route
+
 
 module.exports = router;

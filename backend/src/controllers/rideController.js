@@ -1,6 +1,8 @@
 // rideController.js
 
 const rideModel = require("../models/ride.model"); // Import rideModel
+const { getRideBookedUsers } = require("../services/rideService");
+const { sendMessageToSocketId } = require("../socket");
 
 const {
   createRide,
@@ -44,7 +46,7 @@ async function createRideController(req, res) {
       customFare
     );
     console.log("Ride created successfully. Ride data:", ride);
-    
+
     res.status(201).json({ message: "Ride created successfully!", ride });
   } catch (error) {
     console.error("Create ride error:", error);
@@ -110,10 +112,6 @@ async function getCaptainRidesController(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
-
-
-const { getRideBookedUsers } = require("../services/rideService");
-const { broadcastRideRequestToCaptains } = require("../socket");
 
 async function getRideBookedUsersController(req, res) {
   try {
@@ -235,6 +233,56 @@ async function getFareController(req, res) {
   }
 }
 
+const acceptRideController = async (req, res) => {
+  try {
+    const rideId = req.params.id;
+    const captainId = req.user._id;
+
+    console.log("Accept Ride Request:", { rideId, captainId });
+
+    const ride = await rideModel.findById(rideId);
+    if (!ride) {
+      return res.status(404).json({ message: "Ride not found" });
+    }
+
+    // Ensure the ride is in the "searching" state
+    if (ride.status !== "searching") {
+      return res.status(400).json({ message: "Ride is not available for acceptance" });
+    }
+
+    // Update the ride status and assign the captain
+    ride.status = "accepted";
+    ride.captainId = captainId;
+    await ride.save();
+
+    // ✅ Fetch the updated ride with populated captain and user details
+    const updatedRide = await rideModel.findById(rideId)
+      .populate([
+        { path: "captainId", select: "name email phone vehicle" },
+        { path: "userId", select: "name email phone socketId" } // 🔥 add this!
+      ])
+      .lean();
+
+    console.log("Updated Ride:", updatedRide);
+
+    // ✅ Send the captain's details to the passenger via socket
+    const passengerSocketId = updatedRide.userId?.socketId;
+    if (passengerSocketId) {
+      sendMessageToSocketId(passengerSocketId, {
+        event: "rideAccepted",
+        data: updatedRide,
+      });
+    }
+
+    res.status(200).json({ message: "Ride accepted successfully", ride: updatedRide });
+  } catch (error) {
+    console.error("Accept ride error:", error);
+    res.status(500).json({ message: "Failed to accept the ride" });
+  }
+};
+
+
+
 module.exports = {
   createRideController,
   searchScheduledRidesController,
@@ -246,4 +294,5 @@ module.exports = {
   cancelRideController,
   completeRideController,
   getFareController,
+  acceptRideController,
 };

@@ -91,7 +91,7 @@ async function createRide(
   const newRide = await rideModel.create(rideData);
 
   const populatedRide = await rideModel.findById(newRide._id)
-    .populate("userId", "name email phone")
+    .populate("userId", "name email phone socketId")
     .populate("captainId", "name email phone")
     .lean();
 

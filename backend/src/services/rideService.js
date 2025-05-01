@@ -1,5 +1,6 @@
 // rideService.js
 const rideModel = require("../models/ride.model");
+const Notification = require("../models/notification.model");
 const userModel = require("../models/User");
 const mapService = require("./mapService");
 const crypto = require("crypto");
@@ -27,6 +28,20 @@ async function getFare(origin, destination) {
   };
 
   return { ...fare, distance, duration };
+}
+
+async function createNotification(userId, message, rideId = null, type = "info") {
+  const notification = await Notification.create({
+    userId,
+    message,
+    rideId,
+    type,
+  });
+  return notification;
+}
+
+async function getNotifications(userId) {
+  return Notification.find({ userId }).sort({ createdAt: -1 }).lean();
 }
 
 async function createRide(
@@ -179,6 +194,25 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
     .populate("bookedUsers.userId", "name email phone") // Populate booked users for carpool
     .lean();
 
+
+  // Create notifications using updatedRide
+  await createNotification(
+    userId,
+    `You successfully booked a ride from ${updatedRide.origin} to ${updatedRide.destination}.`,
+    updatedRide._id,
+    "success"
+  );
+
+  if (updatedRide.captainId) {
+    await createNotification(
+      updatedRide.captainId._id,
+      `A passenger booked your ride from ${updatedRide.origin} to ${updatedRide.destination}.`,
+      updatedRide._id,
+      "info"
+    );
+  }
+
+  
   return {
     ride: updatedRide,
     otp: otpToSend, // May be null if ride was already scheduled
@@ -329,4 +363,5 @@ module.exports = {
   getRideBookedUsers, // Add this export
   startRide,
   completeRide,
+  getNotifications
 };

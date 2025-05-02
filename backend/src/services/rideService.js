@@ -212,7 +212,7 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
     );
   }
 
-  
+
   return {
     ride: updatedRide,
     otp: otpToSend, // May be null if ride was already scheduled
@@ -350,8 +350,100 @@ async function completeRide(rideId, captainId) {
     .populate("bookedUsers.userId", "name email phone")
     .lean();
 
+
+  // Create notifications
+  await createNotification(
+    updatedRide.userId,
+    `Your ride from ${updatedRide.origin} to ${updatedRide.destination} was completed.`,
+    updatedRide._id,
+    "success"
+  );
+
+  await createNotification(
+    captainId,
+    `You successfully completed the ride from ${updatedRide.origin} to ${ride.destination}.`,
+    updatedRide._id,
+    "success"
+  );
+
+
   return updatedRide;
 }
+
+async function cancelRide(rideId, userId, role, reason) {
+  const ride = await rideModel.findById(rideId).populate("userId captainId", "name email");
+  if (!ride) {
+    throw new Error("Ride not found");
+  }
+
+  if (ride.status !== "scheduled") {
+    throw new Error("Only scheduled rides can be canceled");
+  }
+
+  if (role === "captain" && ride.captainId._id.toString() !== userId.toString()) {
+    throw new Error("You are not authorized to cancel this ride");
+  }
+
+  if (role === "passenger" && ride.userId._id.toString() !== userId.toString()) {
+    throw new Error("You are not authorized to cancel this ride");
+  }
+
+  // Provide a default valid reason if none is provided
+  let validReason = reason;
+  if (!reason) {
+    if (role === "passenger") {
+      validReason = "change_of_plans"; // Default reason for passengers
+    } else if (role === "captain") {
+      validReason = "ride_conflict"; // Default reason for captains
+    } else {
+      validReason = "ride_expired"; // Default reason for the system
+    }
+  }
+
+  // Update the ride status and cancellation details
+  ride.status = "canceled";
+  ride.canceledBy = role;
+  ride.canceledReason = validReason;
+  await ride.save();
+
+  // Create notifications
+  if (role === "captain" && ride.userId) {
+    await createNotification(
+      ride.userId._id,
+      `Your ride from ${ride.origin} to ${ride.destination} was canceled by the captain.`,
+      ride._id,
+      "info"
+    );
+
+    await createNotification(
+      ride.captainId._id,
+      `The ride from ${ride.origin} to ${ride.destination} was canceled Successfully.`,
+      ride._id,
+      "info"
+    );
+
+
+  }
+
+  if (role === "passenger" && ride.captainId) {
+    await createNotification(
+      ride.captainId._id,
+      `The ride from ${ride.origin} to ${ride.destination} was canceled by the passenger.`,
+      ride._id,
+      "info"
+    );
+
+    await createNotification(
+      ride.userId._id,
+      `Your ride from ${ride.origin} to ${ride.destination} was canceled successfully .`,
+      ride._id,
+      "info"
+    );
+  }
+
+  return ride;
+}
+
 
 module.exports = {
   createRide,
@@ -363,5 +455,6 @@ module.exports = {
   getRideBookedUsers, // Add this export
   startRide,
   completeRide,
+  cancelRide,
   getNotifications
 };

@@ -12,7 +12,7 @@ const {
   getCaptainRides,
   startRide,
   completeRide,
-  getFare,
+  getFare,cancelRide,
 } = require("../services/rideService");
 
 async function createRideController(req, res) {
@@ -154,49 +154,13 @@ async function cancelRideController(req, res) {
 
     console.log("Cancel Ride Request:", { rideId, reason, userId, role });
 
-    const ride = await rideModel.findById(rideId);
-    if (!ride) {
-      console.error("Ride not found");
-      return res.status(404).json({ message: "Ride not found" });
-    }
-
-    if (ride.status !== "scheduled") {
-      console.error("Ride is not in a scheduled state");
-      return res.status(400).json({ message: "Only scheduled rides can be canceled" });
-    }
-
-    if (role === "captain" && ride.captainId.toString() !== userId.toString()) {
-      console.error("Unauthorized captain");
-      return res.status(403).json({ message: "You are not authorized to cancel this ride" });
-    }
-
-    if (role === "passenger" && ride.userId.toString() !== userId.toString()) {
-      console.error("Unauthorized passenger");
-      return res.status(403).json({ message: "You are not authorized to cancel this ride" });
-    }
-
-    // Provide a default valid reason if none is provided
-    let validReason = reason;
-    if (!reason) {
-      if (role === "passenger") {
-        validReason = "change_of_plans"; // Default reason for passengers
-      } else if (role === "captain") {
-        validReason = "ride_conflict"; // Default reason for captains
-      } else {
-        validReason = "ride_expired"; // Default reason for the system
-      }
-    }
-
-    ride.status = "canceled";
-    ride.canceledBy = role;
-    ride.canceledReason = validReason; // Use the valid reason
-    await ride.save();
+    const ride = await cancelRide(rideId, userId, role, reason);
 
     console.log("Ride canceled successfully");
     res.status(200).json({ message: "Ride canceled successfully", ride });
   } catch (error) {
     console.error("Cancel ride error:", error);
-    res.status(500).json({ message: "Failed to cancel the ride" });
+    res.status(500).json({ message: error.message });
   }
 }
 
@@ -295,4 +259,5 @@ module.exports = {
   completeRideController,
   getFareController,
   acceptRideController,
+  cancelRideController,
 };

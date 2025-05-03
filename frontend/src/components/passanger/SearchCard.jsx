@@ -12,6 +12,7 @@ import {
   LocateIcon,
   Clock,
 } from "lucide-react";
+import FareDetails from "./FairDetails";
 
 const SearchCard = () => {
   const [origin, setOrigin] = useState("");
@@ -202,6 +203,47 @@ const SearchCard = () => {
     }
   };
 
+  const handleConfirmRide = async () => {
+    if (!vehicleType) {
+      alert("Please select a vehicle type before confirming the ride.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/rides/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          origin,
+          destination,
+          rideType: "instant",
+          vehicleType,
+          totalSeats: seats,
+          finalFare: fareDetails[vehicleType],
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create ride");
+      }
+
+      const data = await res.json();
+      alert("Ride created successfully!");
+      setShowFareComponent(false); // Close the modal
+    } catch (err) {
+      console.error("Error creating ride:", err);
+      alert("Failed to create ride.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="max-w-2xl w-full bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl">
@@ -348,56 +390,19 @@ const SearchCard = () => {
             🔍 Search Rides
           </button>
         </div>
-
-        {/* Floating Component for Instant Ride */}
-        {showFareComponent && fareDetails && (
-          <div className="flex-1 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl lg:mt-0 mt-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 text-center">
-              Select Vehicle Type
-            </h3>
-            <div className="space-y-4">
-              {[
-                {
-                  type: "car",
-                  label: "Car",
-                  img: "https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg",
-                },
-                {
-                  type: "bike",
-                  label: "Bike",
-                  img: "https://www.uber-assets.com/image/upload/f_auto,q_auto:eco,c_fill,h_638,w_956/v1649231091/assets/2c/7fa194-c954-49b2-9c6d-a3b8601370f5/original/Uber_Moto_Orange_312x208_pixels_Mobile.png",
-                },
-                {
-                  type: "auto",
-                  label: "Auto",
-                  img: "https://www.uber-assets.com/image/upload/f_auto,q_auto:eco,c_fill,h_368,w_552/v1648431773/assets/1d/db8c56-0204-4ce4-81ce-56a11a07fe98/original/Uber_Auto_558x372_pixels_Desktop.png",
-                },
-              ].map(({ type, label, img }) => (
-                <button
-                  key={type}
-                  onClick={() => handleVehicleTypeSelection(type)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md border 
-            ${
-              vehicleType === type
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-transparent"
-            }`}
-                  disabled={loading}
-                >
-                  <img
-                    src={img}
-                    alt={label}
-                    className="w-10 h-10 rounded-md object-cover"
-                  />
-                  <span className="text-sm font-medium">
-                    {label} - ₹{fareDetails[type]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Fare Details Modal */}
+      {showFareComponent && fareDetails && (
+        <FareDetails
+          fareDetails={fareDetails}
+          vehicleType={vehicleType}
+          onVehicleSelect={setVehicleType}
+          onConfirm={handleConfirmRide} // Pass the confirm handler
+          loading={loading}
+          onClose={() => setShowFareComponent(false)}
+        />
+      )} 
     </>
   );
 };

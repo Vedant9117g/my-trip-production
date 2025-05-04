@@ -9,8 +9,9 @@ import { useLoadUserQuery } from "./features/api/authApi";
 import Home from "./pages/Home";
 import InstantRide from "./pages/InstantRide";
 import ScheduledRide from "./pages/ScheduledRide";
-import RideDetails from "./pages/RideDetails"; // ✅ Import the new component
+import RideDetails from "./pages/RideDetails"; // ✅ Import the ride details component
 import CaptainHome from "./pages/CaptainHome";
+import WaitingForDriver from "./components/passanger/WaitingForDriver"; // ✅ Import the new WaitingForDriver component
 
 const appRouter = createBrowserRouter([
   {
@@ -42,12 +43,16 @@ const appRouter = createBrowserRouter([
         element: <ScheduledRide />,
       },
       {
-        path: "ride/:id", // ✅ New route for ride details
+        path: "ride/:id", // ✅ Route for ride details
         element: <RideDetails />,
       },
       {
         path: "captain",
         element: <CaptainHome />,
+      },
+      {
+        path: "waiting-for-driver", // ✅ New route for WaitingForDriver
+        element: <WaitingForDriver />,
       },
     ],
   },

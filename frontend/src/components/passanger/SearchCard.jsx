@@ -13,8 +13,11 @@ import {
   Clock,
 } from "lucide-react";
 import FareDetails from "./FairDetails";
+import { useDispatch } from "react-redux";
+import { setRideDetails } from "@/features/api/rideSlice"; // Import the action to set ride details
 
 const SearchCard = () => {
+  const dispatch = useDispatch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [rideType, setRideType] = useState("scheduled");
@@ -234,6 +237,20 @@ const SearchCard = () => {
       }
 
       const data = await res.json();
+
+
+       // Dispatch the ride details to Redux
+       dispatch(
+        setRideDetails({
+          rideId: data.ride._id,
+          rideType: "instant",
+          status: "searching",
+        })
+      );
+
+      navigate("/waiting-for-driver");
+
+
       alert("Ride created successfully!");
       setShowFareComponent(false); // Close the modal
     } catch (err) {
@@ -402,7 +419,7 @@ const SearchCard = () => {
           loading={loading}
           onClose={() => setShowFareComponent(false)}
         />
-      )} 
+      )}
     </>
   );
 };

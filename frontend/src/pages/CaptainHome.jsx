@@ -1,4 +1,4 @@
-import React, { useEffect, useState,useContext } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import { toast } from "sonner";
@@ -109,11 +109,11 @@ const CaptainHome = () => {
       console.log("New ride received:", data);
       setRide(data);
     };
-  
+
     // Remove any existing listener before adding a new one
     socket.off("new-ride");
     socket.on("new-ride", handleNewRide);
-  
+
     // Cleanup the event listener when the component unmounts
     return () => {
       socket.off("new-ride", handleNewRide);
@@ -128,7 +128,7 @@ const CaptainHome = () => {
         navigate("/login");
         return;
       }
-  
+
       const response = await axios.post(
         `http://localhost:5000/api/rides/${ride._id}/accept`,
         {},
@@ -137,15 +137,26 @@ const CaptainHome = () => {
           withCredentials: true,
         }
       );
-  
+
       toast.success("Ride accepted successfully!");
       console.log("Ride accepted:", response.data.ride);
-  
-      // Clear the popup after accepting
+
+      // Emit rideAccepted event to the passenger
+      socket.emit("rideAccepted", {
+        rideId: ride._id,
+        captain: {
+          name: userData.user.name,
+          vehicleType: ride.vehicleType,
+          phone: userData.user.phone,
+        },
+      });
+
       setRide(null);
     } catch (error) {
       console.error("Error accepting ride:", error);
-      toast.error(error.response?.data?.message || "Failed to accept the ride.");
+      toast.error(
+        error.response?.data?.message || "Failed to accept the ride."
+      );
     }
   };
 
@@ -154,7 +165,6 @@ const CaptainHome = () => {
     toast.error("Ride rejected!");
     setRide(null); // Clear the popup after rejecting
   };
-
 
   useEffect(() => {
     fetchRides();
@@ -165,7 +175,6 @@ const CaptainHome = () => {
       console.log("User socketId:", userData.user.socketId); // Log the socketId
     }
   }, [isLoading, userData]);
-
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

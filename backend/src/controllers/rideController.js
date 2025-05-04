@@ -12,7 +12,7 @@ const {
   getCaptainRides,
   startRide,
   completeRide,
-  getFare,cancelRide,
+  getFare, cancelRide,
 } = require("../services/rideService");
 
 async function createRideController(req, res) {
@@ -219,22 +219,32 @@ const acceptRideController = async (req, res) => {
     ride.captainId = captainId;
     await ride.save();
 
-    // ✅ Fetch the updated ride with populated captain and user details
+    // Fetch the updated ride with all captain details
     const updatedRide = await rideModel.findById(rideId)
       .populate([
-        { path: "captainId", select: "name email phone vehicle" },
-        { path: "userId", select: "name email phone socketId" } // 🔥 add this!
+        {
+          path: "captainId",
+          select: "-password -__v", // Exclude sensitive fields like password and __v
+        },
+        {
+          path: "userId",
+          select: "name email phone socketId", // Include only necessary fields for the passenger
+        },
       ])
       .lean();
 
     console.log("Updated Ride:", updatedRide);
 
-    // ✅ Send the captain's details to the passenger via socket
+    // Send the captain's details to the passenger via socket
     const passengerSocketId = updatedRide.userId?.socketId;
     if (passengerSocketId) {
       sendMessageToSocketId(passengerSocketId, {
         event: "rideAccepted",
-        data: updatedRide,
+        data: {
+          ...updatedRide,
+          captain: updatedRide.captainId, // Include all captain details
+          rideId: updatedRide._id, // Add rideId explicitly
+        },
       });
     }
 

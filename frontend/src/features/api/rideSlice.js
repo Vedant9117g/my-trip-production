@@ -1,10 +1,22 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
+// Helper function to save state to localStorage
+const saveToLocalStorage = (state) => {
+  localStorage.setItem("rideState", JSON.stringify(state));
+};
+
+// Helper function to load state from localStorage
+const loadFromLocalStorage = () => {
+  const savedState = localStorage.getItem("rideState");
+  return savedState ? JSON.parse(savedState) : null;
+};
+
+// Load initial state from localStorage or use default values
+const initialState = loadFromLocalStorage() || {
   rideId: null,
   rideType: null,
   status: "searching",
-  captainDetails: null,
+  rideDetails: null, // Store the full ride details here
 };
 
 const rideSlice = createSlice({
@@ -12,23 +24,22 @@ const rideSlice = createSlice({
   initialState,
   reducers: {
     setRideDetails: (state, action) => {
-      state.rideId = action.payload.rideId;
-      state.rideType = action.payload.rideType;
-      state.status = action.payload.status || "searching";
+      state.rideId = action.payload.rideId; // Set rideId from payload
+      state.rideType = action.payload.rideType; // Set rideType from payload
+      state.status = action.payload.status || "searching"; // Set status
+      state.rideDetails = action.payload; // Store the full ride details
+      console.log("setRideDetails payload:", action.payload); // Debugging log
+      saveToLocalStorage(state); // Save updated state to localStorage
     },
-    setCaptainDetails: (state, action) => {
-        console.log("setCaptainDetails payload:", action.payload); // Debugging log
-        state.captainDetails = action.payload; // Update captain details
-        state.status = "accepted"; // Update the status to "accepted"
-      },
     clearRide: (state) => {
       state.rideId = null;
       state.rideType = null;
       state.status = "searching";
-      state.captainDetails = null;
+      state.rideDetails = null; // Clear the full ride details
+      saveToLocalStorage(state); // Clear state in localStorage
     },
   },
 });
 
-export const { setRideDetails, setCaptainDetails, clearRide } = rideSlice.actions;
+export const { setRideDetails, clearRide } = rideSlice.actions;
 export default rideSlice.reducer;

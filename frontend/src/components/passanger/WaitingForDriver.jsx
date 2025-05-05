@@ -1,136 +1,85 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { Loader2, User, Phone, Car, Star, Mail, MapPin } from "lucide-react"; // Icons
+import { Loader2 } from "lucide-react";
 import { SocketContext } from "@/context/SocketContext";
-import { setCaptainDetails } from "@/features/api/rideSlice";
+import { setRideDetails } from "@/features/api/rideSlice";
+import DriverDetailsCard from "./DriverDetailsCard";
 
 const WaitingForDriver = () => {
   const { socket } = useContext(SocketContext);
-  const { rideId, status } = useSelector((state) => state.ride);
-  const captainDetails = useSelector((state) => state.ride.captainDetails);
+  const { rideDetails } = useSelector((state) => state.ride); // Access full ride details
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [timeLeft, setTimeLeft] = useState(120);
+  const [isRideAccepted, setIsRideAccepted] = useState(false); // Track ride acceptance
+
+  // Rehydrate Redux state from localStorage on component mount
+  useEffect(() => {
+    if (!rideDetails) {
+      const savedState = localStorage.getItem("rideState");
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        dispatch(setRideDetails(parsedState.rideDetails)); // Rehydrate Redux state
+        if (parsedState.rideDetails?.status === "accepted") {
+          setIsRideAccepted(true); // Mark ride as accepted if already accepted
+        }
+      } else {
+        alert("No ride details found. Redirecting to home.");
+        navigate("/");
+      }
+    } else if (rideDetails.status === "accepted") {
+      setIsRideAccepted(true); // Mark ride as accepted if already accepted
+    }
+  }, [rideDetails, dispatch, navigate]);
 
   useEffect(() => {
-    console.log("Updated captainDetails:", captainDetails); // Debugging log
-  }, [captainDetails]);
+    if (!socket || typeof socket.on !== "function") return;
 
-  useEffect(() => {
-    if (!socket || typeof socket.on !== "function") {
-      console.error("Socket is not initialized or invalid");
-      return;
-    }
-
-    if (!rideId) {
-      alert("No ride ID found. Redirecting to home.");
-      navigate("/");
-      return;
-    }
-
-    // Countdown timer
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
-    // Listen for ride acceptance from the server
     socket.on("rideAccepted", (data) => {
-      console.log("Ride accepted by captain:", data); // Debugging log
-      console.log("Redux rideId:", rideId); // Debugging log
-      console.log("Event rideId:", data.rideId); // Debugging log
-      console.log("status:", data.status); // Debugging log
-      console.log("Captain details payload:", data.captain); // Log captain details
-
-      if (data.rideId === rideId) {
-        dispatch(setCaptainDetails(data.captain)); // Update captain details in Redux
-        clearInterval(timer); // Stop the timer only after dispatching
-      }
+      console.log("Full Ride Details:", data); // Log full ride details in the console
+      dispatch(setRideDetails(data)); // Store the full ride details in Redux
+      setIsRideAccepted(true); // Mark ride as accepted
+      clearInterval(timer);
     });
 
-    // Cleanup
     return () => {
       clearInterval(timer);
       socket.off("rideAccepted");
     };
-  }, [socket, rideId, dispatch, navigate]);
+  }, [socket, dispatch]);
 
   useEffect(() => {
-    if (timeLeft === 0 && status === "searching") {
-      alert("No driver accepted your ride. Please try again.");
+    if (timeLeft === 0 && !isRideAccepted) {
+      alert("No driver accepted your ride. Try again.");
       navigate("/");
     }
-  }, [timeLeft, status, navigate]);
+  }, [timeLeft, isRideAccepted, navigate]);
 
-  if (captainDetails) {
-    // Provide dummy data for missing fields
+  if (isRideAccepted && rideDetails) {
     const {
-      name = "Unknown Captain",
-      email = "Not Available",
-      phone = "Not Available",
-      profilePhoto = "/default-profile.png", // Default profile photo
-      role = "Captain",
-      rating = "N/A",
-      vehicle = {
-        vehicleType: "Unknown",
-        model: "Unknown",
-        numberPlate: "Not Available",
-        seats: "N/A",
-      },
-    } = captainDetails;
+      captainId: captainDetails,
+      otp,
+      origin,
+      destination,
+      fare,
+      status,       
+    } = rideDetails;
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-        <h1 className="text-3xl font-bold mb-4">Driver Found!</h1>
-        <p className="text-lg mb-6">Your ride has been accepted by:</p>
-
-        {/* Captain Details Card */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center w-full max-w-md">
-          <img
-            src={profilePhoto}
-            alt="Captain Profile"
-            className="w-24 h-24 rounded-full mx-auto mb-4"
-          />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {name}
-          </h2>
-          <p className="text-gray-700 dark:text-gray-300 mb-2">
-            <Mail className="inline-block w-5 h-5 mr-2 text-blue-600" />
-            {email}
-          </p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2">
-            <Phone className="inline-block w-5 h-5 mr-2 text-green-600" />
-            {phone}
-          </p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2">
-            <User className="inline-block w-5 h-5 mr-2 text-yellow-600" />
-            Role: {role}
-          </p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2">
-            <Star className="inline-block w-5 h-5 mr-2 text-yellow-500" />
-            Rating: {rating}
-          </p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2">
-            <Car className="inline-block w-5 h-5 mr-2 text-red-600" />
-            Vehicle: {vehicle.model} ({vehicle.vehicleType})
-          </p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2">
-            <MapPin className="inline-block w-5 h-5 mr-2 text-purple-600" />
-            Number Plate: {vehicle.numberPlate}
-          </p>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+          <h1 className="text-3xl font-bold mb-2 text-center">Driver Found!</h1>
+          <p className="text-lg mb-4 text-center">Your ride has been accepted.</p>
+          <DriverDetailsCard captain={rideDetails.captainId} ride={rideDetails} />
         </div>
-
-        <button
-          onClick={() => navigate(`/ride/${rideId}`)}
-          className="mt-6 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold text-lg transition duration-200"
-        >
-          View Ride Details
-        </button>
-      </div>
-    );
+      );
   }
 
-  // Waiting Screen
+  // Show timer and waiting message until ride is accepted
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
       <h1 className="text-3xl font-bold mb-4">Waiting for a Driver</h1>

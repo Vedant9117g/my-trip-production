@@ -1,86 +1,19 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import PublishRideCard from "@/components/captain/PublishRideCard";
+import RideRequestPopup from "@/components/captain/RideRequestPopup";
+import { SocketContext } from "../context/SocketContext";
+import { useLoadUserQuery } from "../features/api/authApi";
 import axios from "axios";
-import dayjs from "dayjs";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { SocketContext } from "../context/SocketContext"; // Import SocketContext
-import { useLoadUserQuery } from "../features/api/authApi";
-import RideRequestPopup from "../components/RideRequestPopup";
-
-const RideCard = ({ ride }) => {
-  return (
-    <div className="p-4 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-      <p className="text-gray-900 dark:text-white font-medium">
-        {ride.origin} → {ride.destination}
-      </p>
-      <p className="text-gray-700 dark:text-gray-300">
-        <strong>Departure:</strong>{" "}
-        {dayjs(ride.departureTime).format("DD MMM YYYY, hh:mm A")}
-      </p>
-      <p className="text-gray-700 dark:text-gray-300">
-        <strong>Fare:</strong> ₹{ride.finalFare}
-      </p>
-      <p className="text-gray-700 dark:text-gray-300">
-        <strong>Seats:</strong>{" "}
-        {ride.scheduledType === "carpool"
-          ? `${ride.totalSeats - ride.availableSeats}/${ride.totalSeats}`
-          : `${ride.seatsBooked}/${ride.totalSeats}`}
-      </p>
-    </div>
-  );
-};
+import { Car, ClipboardList, Users, DollarSign } from "lucide-react";
 
 const CaptainHome = () => {
-  const [activeRides, setActiveRides] = useState([]);
-  const [settledRides, setSettledRides] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [ride, setRide] = useState(null);
-  const [formData, setFormData] = useState({
-    origin: "",
-    destination: "",
-    totalSeats: 1,
-    rideType: "scheduled",
-    scheduledType: "cab",
-    departureTime: "",
-    vehicleType: "car",
-    customFare: "",
-  });
-
   const { socket } = useContext(SocketContext); // Access the socket instance
   const { data: userData, isLoading } = useLoadUserQuery();
+  const [ride, setRide] = useState(null); // Track the ride for the popup
   const navigate = useNavigate();
-
-  const fetchRides = async () => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      toast.error("Unauthorized. Redirecting to login...");
-      navigate("/login");
-      return;
-    }
-
-    try {
-      const response = await axios.get(
-        "http://localhost:5000/api/rides/my-rides",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }
-      );
-
-      setActiveRides(response.data.active || []);
-      setSettledRides(response.data.settled || []);
-    } catch (error) {
-      console.error("Error fetching rides:", error);
-      toast.error("Failed to load rides.");
-      if (error.response?.status === 401) {
-        localStorage.removeItem("authToken");
-        navigate("/login");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   useEffect(() => {
     // Emit the "join" event with the userId when the component mounts
     if (!isLoading && userData?.user) {
@@ -167,197 +100,81 @@ const CaptainHome = () => {
   };
 
   useEffect(() => {
-    fetchRides();
-  }, [navigate]);
-
-  useEffect(() => {
     if (!isLoading && userData?.user) {
       console.log("User socketId:", userData.user.socketId); // Log the socketId
     }
   }, [isLoading, userData]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePublishRide = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      toast.error("Unauthorized. Redirecting to login...");
-      navigate("/login");
-      return;
-    }
-
-    const payload = { ...formData, totalSeats: Number(formData.totalSeats) };
-    if (payload.scheduledType === "cab") {
-      payload.customFare = payload.customFare
-        ? Number(payload.customFare)
-        : undefined;
-    } else {
-      delete payload.customFare;
-    }
-
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/rides/create",
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }
-      );
-
-      toast.success(response.data.message || "Ride created successfully!");
-      setFormData({
-        origin: "",
-        destination: "",
-        totalSeats: 1,
-        rideType: "scheduled",
-        scheduledType: "cab",
-        departureTime: "",
-        vehicleType: "car",
-        customFare: "",
-      });
-      fetchRides();
-    } catch (error) {
-      console.error("Error creating ride:", error);
-      toast.error(error.response?.data?.message || "Failed to create ride.");
-    }
-  };
-
-  if (loading) return <h1 className="text-center text-xl">Loading Rides...</h1>;
-
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <div className=" bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-        <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-4">
-          Captain Dashboard
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+      {/* Hero Section */}
+      <header className="w-full py-16 text-center bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-gray-900 dark:to-gray-800 text-white">
+        <h1 className="text-5xl font-bold mb-4">
+          Welcome to Captain Dashboard
+        </h1>
+        <p className="text-lg font-medium">
+          Manage your rides, track requests, and earn rewards. Your journey
+          starts here!
+        </p>
+        {/* Publish Ride Section */}
+        <section className="flex justify-center py-16 px-6">
+          <PublishRideCard />
+        </section>
+      </header>
+
+      {/* Features Section */}
+      <section className="w-full max-w-6xl mx-auto px-6 py-16">
+        <h2 className="text-4xl font-bold text-center mb-8">
+          Why Be a Captain?
         </h2>
-
-        {/* Publish Ride Form */}
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Publish a New Ride
-          </h3>
-          <form onSubmit={handlePublishRide} className="space-y-4">
-            <input
-              type="text"
-              name="origin"
-              placeholder="Origin"
-              value={formData.origin}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-              required
-            />
-            <input
-              type="text"
-              name="destination"
-              placeholder="Destination"
-              value={formData.destination}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-              required
-            />
-            <input
-              type="datetime-local"
-              name="departureTime"
-              value={formData.departureTime}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-              required
-            />
-            <input
-              type="number"
-              name="totalSeats"
-              placeholder="Total Seats"
-              value={formData.totalSeats}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-              min={1}
-              required
-            />
-            <select
-              name="vehicleType"
-              value={formData.vehicleType}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-              required
-            >
-              <option value="car">Car</option>
-              <option value="bike">Bike</option>
-              <option value="auto">Auto</option>
-            </select>
-
-            <select
-              name="scheduledType"
-              value={formData.scheduledType}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-            >
-              <option value="cab">Cab</option>
-              <option value="carpool">Carpool</option>
-            </select>
-
-            {formData.scheduledType === "cab" && (
-              <input
-                type="number"
-                name="customFare"
-                placeholder="Optional Custom Fare"
-                value={formData.customFare}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-                min={1}
-              />
-            )}
-
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-            >
-              Publish Ride
-            </button>
-          </form>
-        </div>
-
-        {/* Active Rides */}
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Active Rides
-          </h3>
-          {activeRides.length === 0 ? (
-            <p className="text-gray-600 dark:text-gray-400">
-              No active rides found.
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Feature 1 */}
+          <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <ClipboardList className="w-12 h-12 text-blue-500 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Manage Rides</h3>
+            <p className="text-center">
+              Easily publish and manage your rides. Stay in control of your
+              schedule and preferences.
             </p>
-          ) : (
-            <div className="space-y-4">
-              {activeRides.map((ride) => (
-                <RideCard key={ride._id} ride={ride} />
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
 
-        {/* Settled Rides */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Settled Rides
-          </h3>
-          {settledRides.length === 0 ? (
-            <p className="text-gray-600 dark:text-gray-400">
-              No settled rides found.
+          {/* Feature 2 */}
+          <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <Users className="w-12 h-12 text-green-500 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Track Requests</h3>
+            <p className="text-center">
+              Get real-time ride requests and accept or reject them with ease.
             </p>
-          ) : (
-            <div className="space-y-4">
-              {settledRides.map((ride) => (
-                <RideCard key={ride._id} ride={ride} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
 
+          {/* Feature 3 */}
+          <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <DollarSign className="w-12 h-12 text-purple-500 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Earn Rewards</h3>
+            <p className="text-center">
+              Earn money and rewards for every ride you complete. Drive smarter,
+              earn better.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Call-to-Action Section */}
+      <section className="w-full bg-indigo-700 dark:bg-gray-900 py-16 text-center">
+        <h2 className="text-4xl font-bold mb-4">Ready to Publish Your Ride?</h2>
+        <p className="text-lg mb-8">
+          Start your journey as a captain today and make a difference in the way
+          people travel.
+        </p>
+        <button
+          onClick={() => navigate("/publish")}
+          className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold text-lg transition duration-200"
+        >
+          Publish a Ride
+        </button>
+      </section>
+
+      {/* Ride Request Popup */}
       <RideRequestPopup
         ride={ride}
         onAccept={handleAcceptRide}

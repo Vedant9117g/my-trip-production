@@ -8,12 +8,16 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Car, ClipboardList, Users, DollarSign } from "lucide-react";
 
+import { useDispatch } from "react-redux";
+import { setRideDetails } from "@/features/api/rideSlice";
+
 const CaptainHome = () => {
   const { socket } = useContext(SocketContext); // Access the socket instance
   const { data: userData, isLoading } = useLoadUserQuery();
   const [ride, setRide] = useState(null); // Track the ride for the popup
   const navigate = useNavigate();
-  
+  const dispatch = useDispatch();
+
   useEffect(() => {
     // Emit the "join" event with the userId when the component mounts
     if (!isLoading && userData?.user) {
@@ -74,7 +78,12 @@ const CaptainHome = () => {
       toast.success("Ride accepted successfully!");
       console.log("Ride accepted:", response.data.ride);
 
+      // Dispatch ride details to Redux
+      dispatch(setRideDetails(response.data.ride));
+      // Navigate to InstantRideDetail page
+      navigate("/instant-ride-detail");
       // Emit rideAccepted event to the passenger
+
       socket.emit("rideAccepted", {
         rideId: ride._id,
         captain: {

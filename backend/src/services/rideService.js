@@ -300,9 +300,9 @@ async function startRide(rideId, captainId, otp) {
     throw new Error("You are not authorized to start this ride");
   }
 
-  // Ensure the ride is in the scheduled state
-  if (ride.status !== "scheduled") {
-    throw new Error("Ride is not in a scheduled state");
+  // Ensure the ride is in a valid state to start
+  if (!["scheduled", "accepted"].includes(ride.status)) {
+    throw new Error("Ride is not in a state that can be started");
   }
 
   // Verify the OTP
@@ -315,10 +315,10 @@ async function startRide(rideId, captainId, otp) {
   ride.otp = null; // Clear the OTP after successful verification
   await ride.save();
 
-  // Return the updated ride
+  // Fetch the updated ride with fully populated captain details
   const updatedRide = await rideModel.findById(rideId)
-    .populate("userId", "name email phone")
-    .populate("captainId", "name email phone vehicle")
+    .populate("userId", "name email phone socketId")
+    .populate("captainId", "name email phone vehicle profilePhoto")
     .populate("bookedUsers.userId", "name email phone")
     .lean();
 
@@ -376,8 +376,9 @@ async function cancelRide(rideId, userId, role, reason) {
     throw new Error("Ride not found");
   }
 
-  if (ride.status !== "scheduled") {
-    throw new Error("Only scheduled rides can be canceled");
+  // Allow cancellation only if the ride is in "scheduled" or "accepted" status
+  if (!["scheduled", "accepted"].includes(ride.status)) {
+    throw new Error("Only scheduled or accepted rides can be canceled");
   }
 
   if (role === "captain" && ride.captainId._id.toString() !== userId.toString()) {
@@ -417,12 +418,10 @@ async function cancelRide(rideId, userId, role, reason) {
 
     await createNotification(
       ride.captainId._id,
-      `The ride from ${ride.origin} to ${ride.destination} was canceled Successfully.`,
+      `The ride from ${ride.origin} to ${ride.destination} was canceled successfully.`,
       ride._id,
       "info"
     );
-
-
   }
 
   if (role === "passenger" && ride.captainId) {
@@ -435,7 +434,7 @@ async function cancelRide(rideId, userId, role, reason) {
 
     await createNotification(
       ride.userId._id,
-      `Your ride from ${ride.origin} to ${ride.destination} was canceled successfully .`,
+      `Your ride from ${ride.origin} to ${ride.destination} was canceled successfully.`,
       ride._id,
       "info"
     );

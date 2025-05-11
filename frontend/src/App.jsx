@@ -7,11 +7,11 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import Profile from "./pages/Profile";
 import { useLoadUserQuery } from "./features/api/authApi";
 import Home from "./pages/Home";
-import InstantRide from "./pages/InstantRide";
 import ScheduledRide from "./pages/ScheduledRide";
 import RideDetails from "./pages/RideDetails"; // ✅ Import the ride details component
 import CaptainHome from "./pages/CaptainHome";
 import WaitingForDriver from "./components/passanger/WaitingForDriver"; // ✅ Import the new WaitingForDriver component
+import InstantRideDetail from "./pages/InstantRideDetail";
 
 const appRouter = createBrowserRouter([
   {
@@ -35,10 +35,6 @@ const appRouter = createBrowserRouter([
         element: <Profile />,
       },
       {
-        path: "instant-ride",
-        element: <InstantRide />,
-      },
-      {
         path: "scheduled-rides",
         element: <ScheduledRide />,
       },
@@ -53,6 +49,10 @@ const appRouter = createBrowserRouter([
       {
         path: "waiting-for-driver", // ✅ New route for WaitingForDriver
         element: <WaitingForDriver />,
+      },
+      {
+        path: "/instant-ride-detail", // ✅ New route for WaitingForDriver
+        element:<InstantRideDetail />
       },
     ],
   },

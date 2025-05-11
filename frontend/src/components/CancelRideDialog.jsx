@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import axios from "axios";
+import { SocketContext } from "@/context/SocketContext"; // Import SocketContext
 
 const cancelReasons = {
   passenger: [
@@ -27,9 +28,19 @@ const cancelReasons = {
   ],
 };
 
-const CancelRideDialog = ({ rideId, userRole, onClose, onSuccess }) => {
+const CancelRideDialog = ({
+  rideId,
+  userRole,
+  onClose,
+  onSuccess,
+  dispatch,
+  setRideDetails,
+  userData, // Pass userData as a prop
+  rideDetails, // Pass rideDetails as a prop
+}) => {
   const [selectedReason, setSelectedReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const { socket } = useContext(SocketContext); // Use SocketContext for socket integration
 
   const handleCancel = async () => {
     if (!selectedReason) {
@@ -49,6 +60,22 @@ const CancelRideDialog = ({ rideId, userRole, onClose, onSuccess }) => {
           withCredentials: true,
         }
       );
+
+      dispatch(setRideDetails(response.data.ride));
+
+      // Emit cancellation event via socket
+      socket.emit("rideCanceled", {
+        rideId,
+        status: "canceled",
+        canceledBy: userRole,
+        canceledReason: selectedReason,
+        captain: {
+          name: userData?.user?.name || "Unknown Captain", // Add fallback for userData.user.name
+          vehicleType: rideDetails?.vehicleType || "Unknown Vehicle", // Add fallback for rideDetails.vehicleType
+          phone: userData?.user?.phone || "Unknown Phone", // Add fallback for userData.user.phone
+        },
+      });
+
       alert(response.data.message || "Ride canceled successfully");
       onSuccess();
     } catch (err) {

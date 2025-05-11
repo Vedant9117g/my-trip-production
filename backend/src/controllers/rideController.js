@@ -139,12 +139,42 @@ async function startRideController(req, res) {
 
     const ride = await startRide(rideId, captainId, otp);
 
-    res.status(200).json({ message: "Ride started successfully", ride });
+    // Fetch the updated ride with all captain details
+    const updatedRide = await rideModel.findById(rideId)
+      .populate([
+        {
+          path: "captainId",
+          select: "-password -__v", // Exclude sensitive fields like password and __v
+        },
+        {
+          path: "userId",
+          select: "name email phone socketId", // Include only necessary fields for the passenger
+        },
+      ])
+      .lean();
+
+    console.log("Updated Ride:", updatedRide);
+
+    // Send the updated ride details to the passenger via socket
+    const passengerSocketId = updatedRide.userId?.socketId;
+    if (passengerSocketId) {
+      sendMessageToSocketId(passengerSocketId, {
+        event: "rideStatusUpdate",
+        data: {
+          ...updatedRide,
+          captain: updatedRide.captainId, // Include all captain details
+          rideId: updatedRide._id, // Add rideId explicitly
+        },
+      });
+    }
+
+    res.status(200).json({ message: "Ride started successfully", ride: updatedRide });
   } catch (error) {
     console.error("Start ride error:", error);
     res.status(400).json({ message: error.message });
   }
 }
+
 
 async function cancelRideController(req, res) {
   try {
@@ -156,8 +186,40 @@ async function cancelRideController(req, res) {
 
     const ride = await cancelRide(rideId, userId, role, reason);
 
+    // Fetch the updated ride with all details
+    const updatedRide = await rideModel.findById(rideId)
+      .populate([
+        {
+          path: "captainId",
+          select: "-password -__v", // Exclude sensitive fields
+        },
+        {
+          path: "userId",
+          select: "name email phone socketId", // Include necessary fields
+        },
+      ])
+      .lean();
+
+    console.log("Updated Ride after cancellation:", updatedRide);
+
+    // Send cancellation details to the passenger or captain via socket
+    const targetSocketId =
+      role === "captain" ? updatedRide.userId?.socketId : updatedRide.captainId?.socketId;
+
+    if (targetSocketId) {
+      sendMessageToSocketId(targetSocketId, {
+        event: "rideCanceled",
+        data: {
+          ...updatedRide,
+          canceledBy: role,
+          canceledReason: reason,
+          rideId: updatedRide._id, // Add rideId explicitly
+        },
+      });
+    }
+
     console.log("Ride canceled successfully");
-    res.status(200).json({ message: "Ride canceled successfully", ride });
+    res.status(200).json({ message: "Ride canceled successfully", ride: updatedRide });
   } catch (error) {
     console.error("Cancel ride error:", error);
     res.status(500).json({ message: error.message });
@@ -173,7 +235,32 @@ async function completeRideController(req, res) {
 
     const ride = await completeRide(rideId, captainId);
 
-    res.status(200).json({ message: "Ride completed successfully", ride });
+    const updatedRide = await rideModel.findById(rideId)
+      .populate([
+        {
+          path: "captainId",
+          select: "-password -__v",
+        },
+        {
+          path: "userId",
+          select: "name email phone socketId"
+        },
+      ])
+      .lean();
+
+    const passengerSocketId = updatedRide.userId?.socketId;
+    if (passengerSocketId) {
+      sendMessageToSocketId(passengerSocketId, {
+        event: "rideCompleted",
+        data: {
+          ...updatedRide,
+          captain: updatedRide.captainId, // Include all captain details
+          rideId: updatedRide._id, // Add rideId explicitly
+        },
+      });
+    }
+
+    res.status(200).json({ message: "Ride completed successfully", ride: updatedRide });
   } catch (error) {
     console.error("Complete ride error:", error);
     res.status(400).json({ message: error.message });

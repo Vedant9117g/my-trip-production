@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { SocketContext } from "@/context/SocketContext";
-import { setRideDetails } from "@/features/api/rideSlice";
+import { setRideDetails , clearRide } from "@/features/api/rideSlice";
 import { useLoadUserQuery } from "@/features/api/authApi";
 import CancelRideDialog from "@/components/CancelRideDialog";
 import StartRidePanel from "@/components/captain/StartRidePanel"; // Import StartRidePanel
@@ -78,17 +78,15 @@ const InstantRideDetail = () => {
       );
 
       toast.success("Ride completed successfully!");
-      dispatch(setRideDetails(response.data.ride));
+      dispatch(clearRide()); // Clear Redux state
+      localStorage.removeItem("rideState"); // Clear localStorage
 
       socket.emit("rideCompleted", {
         rideId: rideDetails._id,
         status: "completed",
-        captain: {
-          name: userData.user.name,
-          vehicleType: rideDetails.vehicleType,
-          phone: userData.user.phone,
-        },
       });
+
+      navigate("/"); // Redirect to the home page
 
     } catch (error) {
       console.error("Error completing ride:", error);

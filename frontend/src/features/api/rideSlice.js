@@ -36,6 +36,7 @@ const rideSlice = createSlice({
       state.rideType = null;
       state.status = "searching";
       state.rideDetails = null; // Clear the full ride details
+      console.log("Ride cleared from Redux store"); // Debugging log
       saveToLocalStorage(state); // Clear state in localStorage
     },
   },

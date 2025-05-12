@@ -10,7 +10,8 @@ const {
   cancelRideController,
   completeRideController,
   getFareController,
-  acceptRideController
+  acceptRideController,
+  getMyRidesController
 } = require("../controllers/rideController");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 
@@ -18,9 +19,12 @@ const router = express.Router();
 
 router.get("/fare", isAuthenticated, getFareController); 
 
+router.get("/my-rides", isAuthenticated, getMyRidesController); 
+
+
 router.post("/create", isAuthenticated, createRideController);
 router.get("/search-scheduled", isAuthenticated, searchScheduledRidesController);
-router.get("/my-rides", isAuthenticated, getCaptainRidesController); // ✅ Captain home
+// router.get("/my-rides", isAuthenticated, getCaptainRidesController); // ✅ Captain home
 router.get("/:id", isAuthenticated, getRideByIdController);
 router.post("/:id/book", isAuthenticated, bookSeatsController);
 router.get("/:id/booked-users", isAuthenticated, getRideBookedUsersController);

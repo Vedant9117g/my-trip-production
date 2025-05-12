@@ -8,6 +8,7 @@ import { Sun, Moon, Bell, Car, User, LogOut } from "lucide-react";
 import axios from "axios";
 import RideDetailsDialog from "./RideDetailsDialog";
 import NotificationsDropdown from "./NotificationsDropdown"; // Import NotificationsDropdown
+import { AiFillCar } from "react-icons/ai";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
@@ -40,10 +41,13 @@ const Navbar = () => {
     if (!token) return;
 
     try {
-      const response = await axios.get("http://localhost:5000/api/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/notifications",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        }
+      );
       setNotifications(response.data.notifications);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -54,10 +58,13 @@ const Navbar = () => {
     if (notification.rideId) {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await axios.get(`http://localhost:5000/api/rides/${notification.rideId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `http://localhost:5000/api/rides/${notification.rideId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        );
         setSelectedRide(response.data.ride); // Open ride details dialog
       } catch (error) {
         console.error("Failed to fetch ride details:", error);
@@ -74,7 +81,10 @@ const Navbar = () => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setProfileMenuOpen(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
         setNotificationOpen(false);
       }
     };
@@ -150,6 +160,15 @@ const Navbar = () => {
                   >
                     <User className="h-5 w-5" />
                     Profile
+                  </Link>
+
+                  <Link
+                    to="/my-rides"
+                    className="flex items-center gap-3 p-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                    onClick={() => setProfileMenuOpen(false)}
+                  >
+                    <AiFillCar className="h-5 w-5" />
+                    My Rides
                   </Link>
 
                   <button

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Loader2 } from "lucide-react";
 import { SocketContext } from "@/context/SocketContext";
-import { setRideDetails } from "@/features/api/rideSlice";
+import { setRideDetails,clearRide } from "@/features/api/rideSlice";
 import DriverDetailsCard from "./DriverDetailsCard";
 
 const WaitingForDriver = () => {
@@ -33,7 +33,6 @@ const WaitingForDriver = () => {
         if (savedRide?.status === "completed") setIsRideCompleted(true);
         if (savedRide?.status === "canceled") setIsRideCanceled(true);
       } else {
-        alert("No ride found. Redirecting to home.");
         navigate("/");
       }
     } else {
@@ -77,15 +76,10 @@ const WaitingForDriver = () => {
 
     socket.on("rideCompleted", (data) => {
       console.log("Ride completed:", data);
-      dispatch(setRideDetails(data)); // Update Redux state
-      localStorage.setItem("rideState", JSON.stringify({ rideDetails: data }));
-
-      if (data.status === "completed") {
-        setIsRideCompleted(true); // Mark ride as started
-        alert("Your ride has completed!");
-      } else {
-        alert("failed to complete.");
-      }
+      dispatch(clearRide()); // Clear Redux state
+      localStorage.removeItem("rideState"); // Clear localStorage
+      alert("Your ride has been completed!");
+      navigate("/"); // Redirect to the home page
     });
 
     socket.on("rideCanceled", (data) => {
@@ -111,13 +105,14 @@ const WaitingForDriver = () => {
     };
   }, [socket, dispatch, navigate]);
 
-  // Timeout fallback
   useEffect(() => {
     if (timeLeft === 0 && rideDetails && rideDetails.status === "searching") {
       alert("No driver accepted your ride. Try again.");
-      navigate("/");
+      dispatch(clearRide()); // Clear Redux state
+      localStorage.removeItem("rideState"); // Clear localStorage
+      navigate("/"); // Redirect to the home page
     }
-  }, [timeLeft, rideDetails, navigate]);
+  }, [timeLeft, rideDetails, navigate, dispatch]);
 
   if (rideDetails) {
     if (rideDetails.status === "ongoing") {

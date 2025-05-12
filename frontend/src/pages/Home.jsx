@@ -1,10 +1,105 @@
-import React from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import SearchCard from "@/components/passanger/SearchCard";
 import { Car, Users, MapPin, Clock } from "lucide-react";
+import { SocketContext } from "@/context/SocketContext";
+import { setRideDetails ,clearRide} from "@/features/api/rideSlice";
+import { useSelector, useDispatch } from "react-redux";
 
 const Home = () => {
+  const { socket } = useContext(SocketContext);
+  const { rideDetails } = useSelector((state) => state.ride); // Access full ride details
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  
+  const [isRideAccepted, setIsRideAccepted] = useState(false); // Track ride acceptance
+  const [isRideStarted, setIsRideStarted] = useState(false); // Track ride start
+  const [isRideCompleted, setIsRideCompleted] = useState(false); // Track ride start
+  const [isRideCanceled, setIsRideCanceled] = useState(false); // Track ride start
+
+  // Rehydrate Redux state from localStorage on component mount
+  useEffect(() => {
+    if (!rideDetails) {
+      const savedState = localStorage.getItem("rideState");
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        const savedRide = parsed.rideDetails;
+
+        dispatch(setRideDetails(parsedState.rideDetails)); // Rehydrate Redux state
+
+        if (savedRide?.status === "accepted") setIsRideAccepted(true);
+        if (savedRide?.status === "ongoing") setIsRideStarted(true);
+        if (savedRide?.status === "completed") setIsRideCompleted(true);
+        if (savedRide?.status === "canceled") setIsRideCanceled(true);
+      } else {
+        navigate("/");
+      }
+    } else {
+      if (rideDetails.status === "accepted") setIsRideAccepted(true);
+      if (rideDetails.status === "ongoing") setIsRideStarted(true);
+      if (rideDetails.status === "completed") setIsRideCompleted(true);
+      if (rideDetails.status === "canceled") setIsRideCanceled(true);
+    }
+  }, [rideDetails, dispatch, navigate]);
+
+  useEffect(() => {
+    if (!socket || typeof socket.on !== "function") return;
+
+    // Listen for rideAccepted event
+    socket.on("rideAccepted", (data) => {
+      console.log("Full Ride Details:", data); // Log full ride details in the console
+      dispatch(setRideDetails(data)); // Store the full ride details in Redux
+      localStorage.setItem("rideState", JSON.stringify({ rideDetails: data }));
+      setIsRideAccepted(true); // Mark ride as accepted
+      clearInterval(timer);
+    });
+
+    // Listen for rideStatusUpdate event (for ride started)
+    socket.on("rideStatusUpdate", (data) => {
+      console.log("Ride status updated:", data);
+      dispatch(setRideDetails(data)); // Update Redux state with new ride details
+      localStorage.setItem("rideState", JSON.stringify({ rideDetails: data }));
+
+      if (data.status === "ongoing") {
+        setIsRideStarted(true); // Mark ride as started
+        alert("Your ride has started!");
+      } else if (data.status === "canceled") {
+        alert("Your ride has been canceled by the driver.");
+        navigate("/"); // Redirect to the home page
+      }
+    });
+
+    socket.on("rideCompleted", (data) => {
+      console.log("Ride completed:", data);
+      dispatch(clearRide()); // Clear Redux state
+      localStorage.removeItem("rideState"); // Clear localStorage
+      alert("Your ride has been completed!");
+      navigate("/"); // Redirect to the home page
+    });
+
+    socket.on("rideCanceled", (data) => {
+      console.log("Ride canceled:", data);
+      dispatch(setRideDetails(data)); // Update Redux state
+      localStorage.setItem("rideState", JSON.stringify({ rideDetails: data }));
+
+      if (data.status === "canceled") {
+        setIsRideCanceled(true); // Mark ride as started
+        alert("Your ride has canceled!");
+      } else {
+        alert("failed to cancel.");
+      }
+    });
+
+    return () => {
+      socket.off("rideAccepted");
+      socket.off("rideStatusUpdate");
+      socket.off("rideCompleted");
+      socket.off("rideCanceled");
+    };
+  }, [socket, dispatch, navigate]);
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-gray-900 dark:to-gray-800 text-white dark:text-gray-200 flex flex-col items-center">
@@ -12,7 +107,8 @@ const Home = () => {
       <header className="w-full py-16 text-center">
         <h1 className="text-5xl font-bold mb-4">Welcome to Crazy Rides</h1>
         <p className="text-lg font-medium">
-          Your one-stop solution for finding and sharing rides. Travel smarter, faster, and cheaper!
+          Your one-stop solution for finding and sharing rides. Travel smarter,
+          faster, and cheaper!
         </p>
       </header>
 
@@ -23,14 +119,17 @@ const Home = () => {
 
       {/* Features Section */}
       <section className="w-full max-w-6xl px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-8">Why Choose Crazy Rides?</h2>
+        <h2 className="text-4xl font-bold text-center mb-8">
+          Why Choose Crazy Rides?
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Feature 1 */}
           <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
             <Car className="w-12 h-12 text-blue-500 mb-4" />
             <h3 className="text-xl font-semibold mb-2">Convenient Rides</h3>
             <p className="text-center">
-              Find rides that match your schedule and travel preferences. Whether you're a passenger or a driver, we've got you covered.
+              Find rides that match your schedule and travel preferences.
+              Whether you're a passenger or a driver, we've got you covered.
             </p>
           </div>
 
@@ -39,7 +138,8 @@ const Home = () => {
             <Users className="w-12 h-12 text-green-500 mb-4" />
             <h3 className="text-xl font-semibold mb-2">Community Driven</h3>
             <p className="text-center">
-              Join a growing community of riders and drivers. Share rides, save costs, and make new connections.
+              Join a growing community of riders and drivers. Share rides, save
+              costs, and make new connections.
             </p>
           </div>
 
@@ -48,7 +148,8 @@ const Home = () => {
             <Clock className="w-12 h-12 text-purple-500 mb-4" />
             <h3 className="text-xl font-semibold mb-2">Save Time & Money</h3>
             <p className="text-center">
-              Enjoy affordable rides and reduce travel time with optimized routes and instant ride matching.
+              Enjoy affordable rides and reduce travel time with optimized
+              routes and instant ride matching.
             </p>
           </div>
         </div>
@@ -57,9 +158,14 @@ const Home = () => {
       {/* About Section */}
       <section className="w-full bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-16">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-4xl font-bold text-center mb-8">About Crazy Rides</h2>
+          <h2 className="text-4xl font-bold text-center mb-8">
+            About Crazy Rides
+          </h2>
           <p className="text-lg text-center mb-8">
-            Crazy Rides is a modern ride-sharing platform designed to make travel easier and more affordable. Whether you're commuting to work, planning a road trip, or just need a quick ride, Crazy Rides connects you with the right people at the right time.
+            Crazy Rides is a modern ride-sharing platform designed to make
+            travel easier and more affordable. Whether you're commuting to work,
+            planning a road trip, or just need a quick ride, Crazy Rides
+            connects you with the right people at the right time.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex items-center gap-4">

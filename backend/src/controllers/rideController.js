@@ -342,6 +342,52 @@ const acceptRideController = async (req, res) => {
   }
 };
 
+async function getMyRidesController(req, res) {
+  try {
+    const userId = req.user._id;
+    const role = req.user.role;
+
+    // Base query: Fetch rides based on the user's role
+    const query = role === "captain" ? { captainId: userId } : { userId };
+
+    // Apply filters from query parameters
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
+    if (req.query.rideType) {
+      query.rideType = req.query.rideType;
+    }
+
+    if (req.query.origin) {
+      query.origin = { $regex: req.query.origin, $options: "i" }; // Case-insensitive match
+    }
+
+    if (req.query.destination) {
+      query.destination = { $regex: req.query.destination, $options: "i" }; // Case-insensitive match
+    }
+
+    if (req.query.departureTime) {
+      const startOfDay = new Date(req.query.departureTime);
+      const endOfDay = new Date(req.query.departureTime);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      query.departureTime = { $gte: startOfDay, $lte: endOfDay };
+    }
+
+    if (req.query.canceledBy) {
+      query.canceledBy = req.query.canceledBy;
+    }
+
+    // Fetch rides from the database
+    const rides = await rideModel.find(query).sort({ createdAt: -1 }).lean();
+
+    res.status(200).json({ rides });
+  } catch (error) {
+    console.error("Error fetching rides:", error);
+    res.status(500).json({ message: "Failed to fetch rides" });
+  }
+}
 
 
 module.exports = {
@@ -357,4 +403,5 @@ module.exports = {
   getFareController,
   acceptRideController,
   cancelRideController,
+  getMyRidesController,
 };

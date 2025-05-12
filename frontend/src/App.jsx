@@ -12,6 +12,7 @@ import RideDetails from "./pages/RideDetails"; // ✅ Import the ride details co
 import CaptainHome from "./pages/CaptainHome";
 import WaitingForDriver from "./components/passanger/WaitingForDriver"; // ✅ Import the new WaitingForDriver component
 import InstantRideDetail from "./pages/InstantRideDetail";
+import MyRides from "./pages/MyRides";
 
 const appRouter = createBrowserRouter([
   {
@@ -33,6 +34,10 @@ const appRouter = createBrowserRouter([
       {
         path: "profile",
         element: <Profile />,
+      },
+      {
+        path: "my-rides",
+        element: <MyRides />,
       },
       {
         path: "scheduled-rides",

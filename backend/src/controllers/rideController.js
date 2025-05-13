@@ -348,7 +348,18 @@ async function getMyRidesController(req, res) {
     const role = req.user.role;
 
     // Base query: Fetch rides based on the user's role
-    const query = role === "captain" ? { captainId: userId } : { userId };
+    let query = {};
+    if (role === "captain") {
+      query.captainId = userId;
+    } else {
+      // For passengers, include rides where the user is in bookedUsers
+      query = {
+        $or: [
+          { userId }, // Rides directly booked by the user
+          { "bookedUsers.userId": userId }, // Carpool rides where the user booked seats
+        ],
+      };
+    }
 
     // Apply filters from query parameters
     if (req.query.status) {
@@ -380,7 +391,12 @@ async function getMyRidesController(req, res) {
     }
 
     // Fetch rides from the database
-    const rides = await rideModel.find(query).sort({ createdAt: -1 }).lean();
+    const rides = await rideModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .populate("captainId", "name email phone vehicle") // Populate captain details
+      .populate("bookedUsers.userId", "name email phone") // Populate booked users
+      .lean();
 
     res.status(200).json({ rides });
   } catch (error) {

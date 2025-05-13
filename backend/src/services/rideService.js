@@ -139,8 +139,20 @@ async function createRide(
 
 async function getRideById(rideId) {
   return rideModel.findById(rideId)
-    .populate("userId", "name email phone")
-    .populate("captainId", "name email phone vehicle")
+    .populate([
+      {
+        path: "captainId",
+        select: "-password -__v", // Exclude sensitive fields like password and __v
+      },
+      {
+        path: "userId",
+        select: "name email phone socketId", // Include only necessary fields for the passenger
+      },
+      {
+        path: "bookedUsers.userId",
+        select: "name email phone", // Include passenger details for carpool rides
+      },
+    ])
     .lean();
 }
 
@@ -184,7 +196,7 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
 
   // Update the user's booked rides
   await userModel.findByIdAndUpdate(userId, {
-    $addToSet: { bookedRides: rideId },
+    $addToSet: { bookedRides: rideId }, // Ensure the ride is added to the passenger's bookedRides array
   });
 
   // Fetch the updated ride and populate user details
@@ -193,7 +205,6 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
     .populate("captainId", "name email phone vehicle") // Populate captain details
     .populate("bookedUsers.userId", "name email phone") // Populate booked users for carpool
     .lean();
-
 
   // Create notifications using updatedRide
   await createNotification(
@@ -211,7 +222,6 @@ async function bookSeatsInRide(rideId, userId, seatsToBook) {
       "info"
     );
   }
-
 
   return {
     ride: updatedRide,

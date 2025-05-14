@@ -5,6 +5,7 @@ import { useLoadUserQuery } from "../features/api/authApi"; // Import useLoadUse
 import CancelRideDialog from "../components/CancelRideDialog";
 import {
   UserIcon,
+  UsersIcon,
   PhoneIcon,
   MailIcon,
   CarIcon,
@@ -202,110 +203,235 @@ const RideDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Captain Info */}
           {userRole === "passenger" && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 space-y-4 shadow-sm">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                <UserIcon className="w-5 h-5 text-indigo-600" /> Captain Info
-              </h3>
-              <div className="flex gap-4 items-center">
-                <img
-                  src={
-                    ride.captainId?.profilePhoto ||
-                    "https://via.placeholder.com/100"
-                  }
-                  alt="Captain"
-                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-400 dark:border-gray-600"
-                />
-                <div className="text-gray-700 dark:text-gray-300 space-y-1 text-sm">
-                  <p className="flex items-center gap-2">
-                    <UserIcon className="w-4 h-4 text-indigo-600" />
-                    {ride.captainId?.name || "N/A"}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <PhoneIcon className="w-4 h-4 text-blue-500" />
-                    {ride.captainId?.phone || "N/A"}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <MailIcon className="w-4 h-4 text-pink-500" />
-                    {ride.captainId?.email || "N/A"}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <CarIcon className="w-4 h-4 text-gray-700" />
-                    {ride.captainId?.vehicle
-                      ? `${ride.captainId.vehicle.model} (${ride.captainId.vehicle.numberPlate})`
-                      : "Vehicle info not available"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 space-y-4 shadow-sm">
+    <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+      <UserIcon className="w-5 h-5 text-indigo-600" /> Captain Info
+    </h3>
+
+    <div className="flex gap-4 items-center">
+      <img
+        src={
+          ride.captainId?.profilePhoto ||
+          "https://via.placeholder.com/100"
+        }
+        alt="Captain"
+        className="w-20 h-20 rounded-full object-cover border-2 border-gray-400 dark:border-gray-600"
+      />
+
+      <div className="w-full space-y-2 text-sm text-gray-800 dark:text-gray-300">
+        <div className="flex justify-between items-center">
+          <span className="flex items-center gap-2 font-medium">
+            <UserIcon className="w-4 h-4 text-indigo-600" />
+            Name:
+          </span>
+          <span>{ride.captainId?.name || "N/A"}</span>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <span className="flex items-center gap-2 font-medium">
+            <PhoneIcon className="w-4 h-4 text-blue-500" />
+            Phone:
+          </span>
+          <span>{ride.captainId?.phone || "N/A"}</span>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <span className="flex items-center gap-2 font-medium">
+            <MailIcon className="w-4 h-4 text-pink-500" />
+            Email:
+          </span>
+          <span>{ride.captainId?.email || "N/A"}</span>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <span className="flex items-center gap-2 font-medium">
+            <CarIcon className="w-4 h-4 text-gray-700 dark:text-gray-200" />
+            Vehicle:
+          </span>
+          <span>
+            {ride.captainId?.vehicle
+              ? `${ride.captainId.vehicle.model} (${ride.captainId.vehicle.numberPlate})`
+              : "Not available"}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
           {/* Passenger Info */}
-          {userRole === "captain" && ride.userId && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 space-y-4 shadow-sm">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                <UserIcon className="w-5 h-5 text-indigo-600" /> Passenger Info
+          {userRole === "captain" && (
+            <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-md space-y-4">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <UsersIcon className="w-5 h-5 text-indigo-600" />
+                Passenger Info
               </h3>
-              <div className="text-gray-700 dark:text-gray-300 space-y-1 text-sm">
-                <p className="flex items-center gap-2">
-                  <UserIcon className="w-4 h-4 text-indigo-600" />
-                  {ride.userId?.name || "N/A"}
-                </p>
-                <p className="flex items-center gap-2">
-                  <PhoneIcon className="w-4 h-4 text-blue-500" />
-                  {ride.userId?.phone || "N/A"}
-                </p>
-                <p className="flex items-center gap-2">
-                  <MailIcon className="w-4 h-4 text-pink-500" />
-                  {ride.userId?.email || "N/A"}
-                </p>
-              </div>
+
+              {/* CAB Ride – Single Passenger */}
+              {ride.scheduledType === "cab" && ride.userId && (
+                <div className="space-y-3 text-sm text-gray-800 dark:text-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <UserIcon className="w-4 h-4 text-indigo-600" />
+                      Name:
+                    </span>
+                    <span>{ride.userId.name || "N/A"}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <PhoneIcon className="w-4 h-4 text-blue-500" />
+                      Phone:
+                    </span>
+                    <span>{ride.userId.phone || "N/A"}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <MailIcon className="w-4 h-4 text-pink-500" />
+                      Email:
+                    </span>
+                    <span>{ride.userId.email || "N/A"}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Carpool Ride – Multiple Passengers */}
+              {ride.scheduledType === "carpool" &&
+                Array.isArray(ride.bookedUsers) && (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    {ride.bookedUsers.map((booking) => (
+                      <div
+                        key={booking._id}
+                        className="border border-gray-200 dark:border-gray-700 rounded-2xl p-3 bg-white dark:bg-gray-800 shadow-sm space-y-2 text-sm text-gray-800 dark:text-gray-300"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="flex items-center gap-2 font-medium">
+                            <UserIcon className="w-4 h-4 text-indigo-600" />
+                            Name:
+                          </span>
+                          <span>{booking.userId?.name || "N/A"}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="flex items-center gap-2 font-medium">
+                            <PhoneIcon className="w-4 h-4 text-blue-500" />
+                            Phone:
+                          </span>
+                          <span>{booking.userId?.phone || "N/A"}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="flex items-center gap-2 font-medium">
+                            <MailIcon className="w-4 h-4 text-pink-500" />
+                            Email:
+                          </span>
+                          <span>{booking.userId?.email || "N/A"}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="flex items-center gap-2 font-medium">
+                            <TicketIcon className="w-4 h-4 text-sky-500" />
+                            Seats:
+                          </span>
+                          <span>
+                            {booking.seats} seat{booking.seats > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    <p className="text-center text-xs text-gray-400 mt-2">
+                      — That’s all users —
+                    </p>
+                  </div>
+                )}
             </div>
           )}
 
           {/* Ride Info */}
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 space-y-4 shadow-sm">
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-              <MapPinIcon className="w-5 h-5 text-red-500" /> Ride Info
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 space-y-5 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+              <MapPinIcon className="w-6 h-6 text-red-500" /> Ride Information
             </h3>
-            <div className="text-gray-700 dark:text-gray-300 space-y-2 text-sm">
-              <p className="flex items-center gap-2">
-                <MapPinIcon className="w-4 h-4 text-red-500" />
-                {ride.origin} ➝ {ride.destination}
-              </p>
-              <p className="flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-amber-500" />
-                {new Date(ride.departureTime).toLocaleDateString()}
-              </p>
-              <p className="flex items-center gap-2">
-                <ClockIcon className="w-4 h-4 text-purple-500" />
-                {new Date(ride.departureTime).toLocaleTimeString()}
-              </p>
-              <p className="flex items-center gap-2">
-                <IndianRupee className="w-4 h-4 text-green-600" />₹
-                {ride.finalFare}
-              </p>
-              <p className="flex items-center gap-2">
-                <TicketIcon className="w-4 h-4 text-sky-500" />
-                {ride.seatsBooked} / {ride.totalSeats} seats booked
-              </p>
-              <p className="flex items-center gap-2">
-                <CheckCircleIcon className="w-4 h-4 text-emerald-500" />
-                Status:{" "}
-                <span className="font-medium capitalize">{ride.status}</span>
-              </p>
+
+            <div className="text-sm space-y-3 text-gray-800 dark:text-gray-300">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-medium">
+                  <MapPinIcon className="w-4 h-4 text-red-500" />
+                  Route:
+                </div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  {ride.origin} <span className="text-blue-500">→</span>{" "}
+                  {ride.destination}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-medium">
+                  <CalendarIcon className="w-4 h-4 text-amber-500" />
+                  Date:
+                </div>
+                <div>{new Date(ride.departureTime).toLocaleDateString()}</div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-medium">
+                  <ClockIcon className="w-4 h-4 text-purple-500" />
+                  Time:
+                </div>
+                <div>{new Date(ride.departureTime).toLocaleTimeString()}</div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-medium">
+                  <IndianRupee className="w-4 h-4 text-green-600" />
+                  Fare:
+                </div>
+                <div className="font-semibold text-green-700 dark:text-green-400">
+                  ₹{ride.finalFare}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-medium">
+                  <TicketIcon className="w-4 h-4 text-sky-500" />
+                  Seats Booked:
+                </div>
+                <div>
+                  {ride.seatsBooked} / {ride.totalSeats}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-medium">
+                  <CheckCircleIcon className="w-4 h-4 text-emerald-500" />
+                  Status:
+                </div>
+                <div className="capitalize font-semibold">{ride.status}</div>
+              </div>
+
               {userRole === "passenger" &&
                 ride.status === "scheduled" &&
                 ride.otp && (
-                  <p className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-4 h-4 text-blue-500" />
-                    OTP: <span className="font-medium">{ride.otp}</span>
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2 font-medium">
+                      <CheckCircleIcon className="w-4 h-4 text-blue-500" />
+                      OTP:
+                    </div>
+                    <div className="font-bold">{ride.otp}</div>
+                  </div>
                 )}
+
               {ride.canceledBy && (
-                <p className="text-red-500">
-                  This ride was canceled by <strong>{ride.canceledBy}</strong>{" "}
-                  due to: <em>{ride.canceledReason.replace(/_/g, " ")}</em>
-                </p>
+                <div className="flex items-start gap-2 text-red-600 dark:text-red-400 mt-4">
+                  <AlertCircleIcon className="w-5 h-5 mt-0.5" />
+                  <div>
+                    <strong>{ride.canceledBy}</strong> canceled this ride due
+                    to: <em>{ride.canceledReason.replace(/_/g, " ")}</em>
+                  </div>
+                </div>
               )}
             </div>
           </div>

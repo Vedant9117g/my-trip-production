@@ -12,6 +12,7 @@ const mapRoutes = require("./routes/mapRoutes");
 const userRoutes = require("./routes/userRoutes");
 const rideRoutes = require("./routes/rideRoutes");
 const notificationRoutes = require("./routes/notificationRoutes"); // Import notification routes
+const messageRoutes = require("./routes/messageRoute"); // Import message routes
 
 connectDB();
 
@@ -45,6 +46,7 @@ app.use("/api/maps", mapRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/rides", rideRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/messages", messageRoutes); // Add message routes
 
 app.get("/", (req, res) => {
   res.send("Ride Finder API is running...");

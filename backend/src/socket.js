@@ -68,20 +68,34 @@ function initializeSocket(server) {
     // Handle user disconnect
     socket.on('disconnect', () => {
       console.log(`user disconnected: ${socket.id}`);
-  });
+
+      for (const [userId, socketId] of userSocketMap.entries()) {
+        if (socketId === socket.id) {
+          userSocketMap.delete(userId);
+          console.log(`Removed user ${userId} from userSocketMap`);
+          break;
+        }
+      }
+    });
   });
 }
+
+
+const getReceiverSocketId = (userId) => {
+  return userSocketMap.get(userId) || null;
+};
+
 
 const sendMessageToSocketId = (socketId, messageObject) => {
 
   console.log(`Sending message to ${socketId}`, messageObject);
 
   if (io) {
-      io.to(socketId).emit(messageObject.event, messageObject.data);
+    io.to(socketId).emit(messageObject.event, messageObject.data);
   } else {
-      console.log('Socket.io not initialized.');
+    console.log('Socket.io not initialized.');
   }
 }
 
-module.exports = { initializeSocket , sendMessageToSocketId };
+module.exports = { initializeSocket, sendMessageToSocketId , getReceiverSocketId};
 

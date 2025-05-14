@@ -203,62 +203,61 @@ const RideDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Captain Info */}
           {userRole === "passenger" && (
-  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 space-y-4 shadow-sm">
-    <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-      <UserIcon className="w-5 h-5 text-indigo-600" /> Captain Info
-    </h3>
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 space-y-4 shadow-sm">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                <UserIcon className="w-5 h-5 text-indigo-600" /> Captain Info
+              </h3>
 
-    <div className="flex gap-4 items-center">
-      <img
-        src={
-          ride.captainId?.profilePhoto ||
-          "https://via.placeholder.com/100"
-        }
-        alt="Captain"
-        className="w-20 h-20 rounded-full object-cover border-2 border-gray-400 dark:border-gray-600"
-      />
+              <div className="flex gap-4 items-center">
+                <img
+                  src={
+                    ride.captainId?.profilePhoto ||
+                    "https://via.placeholder.com/100"
+                  }
+                  alt="Captain"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-400 dark:border-gray-600"
+                />
 
-      <div className="w-full space-y-2 text-sm text-gray-800 dark:text-gray-300">
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 font-medium">
-            <UserIcon className="w-4 h-4 text-indigo-600" />
-            Name:
-          </span>
-          <span>{ride.captainId?.name || "N/A"}</span>
-        </div>
+                <div className="w-full space-y-2 text-sm text-gray-800 dark:text-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <UserIcon className="w-4 h-4 text-indigo-600" />
+                      Name:
+                    </span>
+                    <span>{ride.captainId?.name || "N/A"}</span>
+                  </div>
 
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 font-medium">
-            <PhoneIcon className="w-4 h-4 text-blue-500" />
-            Phone:
-          </span>
-          <span>{ride.captainId?.phone || "N/A"}</span>
-        </div>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <PhoneIcon className="w-4 h-4 text-blue-500" />
+                      Phone:
+                    </span>
+                    <span>{ride.captainId?.phone || "N/A"}</span>
+                  </div>
 
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 font-medium">
-            <MailIcon className="w-4 h-4 text-pink-500" />
-            Email:
-          </span>
-          <span>{ride.captainId?.email || "N/A"}</span>
-        </div>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <MailIcon className="w-4 h-4 text-pink-500" />
+                      Email:
+                    </span>
+                    <span>{ride.captainId?.email || "N/A"}</span>
+                  </div>
 
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 font-medium">
-            <CarIcon className="w-4 h-4 text-gray-700 dark:text-gray-200" />
-            Vehicle:
-          </span>
-          <span>
-            {ride.captainId?.vehicle
-              ? `${ride.captainId.vehicle.model} (${ride.captainId.vehicle.numberPlate})`
-              : "Not available"}
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <CarIcon className="w-4 h-4 text-gray-700 dark:text-gray-200" />
+                      Vehicle:
+                    </span>
+                    <span>
+                      {ride.captainId?.vehicle
+                        ? `${ride.captainId.vehicle.model} (${ride.captainId.vehicle.numberPlate})`
+                        : "Not available"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Passenger Info */}
           {userRole === "captain" && (
@@ -270,6 +269,34 @@ const RideDetails = () => {
 
               {/* CAB Ride – Single Passenger */}
               {ride.scheduledType === "cab" && ride.userId && (
+                <div className="space-y-3 text-sm text-gray-800 dark:text-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <UserIcon className="w-4 h-4 text-indigo-600" />
+                      Name:
+                    </span>
+                    <span>{ride.userId.name || "N/A"}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <PhoneIcon className="w-4 h-4 text-blue-500" />
+                      Phone:
+                    </span>
+                    <span>{ride.userId.phone || "N/A"}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 font-medium">
+                      <MailIcon className="w-4 h-4 text-pink-500" />
+                      Email:
+                    </span>
+                    <span>{ride.userId.email || "N/A"}</span>
+                  </div>
+                </div>
+              )}
+
+              {ride.rideType === "instant" && ride.userId && (
                 <div className="space-y-3 text-sm text-gray-800 dark:text-gray-300">
                   <div className="flex justify-between items-center">
                     <span className="flex items-center gap-2 font-medium">

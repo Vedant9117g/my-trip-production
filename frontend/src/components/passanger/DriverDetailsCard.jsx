@@ -1,7 +1,10 @@
-import React from "react";
-import { Phone, Mail, Car, User, BadgeCheck, KeyRound } from "lucide-react";
+import React, { useState } from "react";
+import { Phone, Mail, Car, User, BadgeCheck, KeyRound, MessageCircle } from "lucide-react";
+import MessageDialog from "../MessageDialog";
 
 const DriverDetailsCard = ({ captain, ride }) => {
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+
   const {
     name,
     email,
@@ -47,6 +50,13 @@ const DriverDetailsCard = ({ captain, ride }) => {
             {vehicle?.model || "Unknown"} ({vehicle?.vehicleType || "Type N/A"})
           </p>
         </div>
+        <button
+          className="bg-gray-100 dark:bg-gray-700 p-3 rounded-xl flex flex-col items-center hover:scale-105 transition mt-4"
+          onClick={() => setShowMessageDialog(true)}
+        >
+          <MessageCircle className="mb-1" />
+          Message Captain
+        </button>
       </div>
 
       {/* Ride Card */}
@@ -78,6 +88,13 @@ const DriverDetailsCard = ({ captain, ride }) => {
           <strong>OTP:</strong> <span className="text-lg font-bold">{otp}</span>
         </p>
       </div>
+
+      {/* Message Dialog */}
+      {showMessageDialog && (
+        <MessageDialog
+          onClose={() => setShowMessageDialog(false)}
+        />
+      )}
     </div>
   );
 };

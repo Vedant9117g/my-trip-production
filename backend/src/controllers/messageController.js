@@ -38,12 +38,15 @@ async function sendMessageController(req, res) {
     // Emit the new message to the receiver via Socket.IO
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
+      console.log("Emitting newMessage event to socket:", receiverSocketId); // Debug log
       req.io.to(receiverSocketId).emit("newMessage", {
         senderId,
         receiverId,
         message: newMessage.message,
         createdAt: newMessage.createdAt,
       });
+    } else {
+      console.log(`Receiver socket ID not found for user: ${receiverId}`); // Debug log
     }
 
     // Respond with the created message

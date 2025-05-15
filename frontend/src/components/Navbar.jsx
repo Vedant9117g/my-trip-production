@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect,useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useLogoutUserMutation } from "../features/api/authApi";
@@ -95,7 +95,7 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="sticky top-0 bg-white dark:bg-gray-900 p-4 flex justify-between items-center shadow-md z-50 border-b border-gray-200 dark:border-gray-700">
+    <nav className="sticky top-0 bg-white dark:bg-gray-900 p-4 flex justify-between items-center shadow-md z-10 border-b border-gray-200 dark:border-gray-700">
       {/* Logo */}
       <button
         onClick={() => navigate(user?.role === "captain" ? "/captain" : "/")}
@@ -129,9 +129,10 @@ const Navbar = () => {
               {/* Notifications Dropdown */}
               {notificationOpen && (
                 <NotificationsDropdown
-                  notifications={notifications}
-                  onNotificationClick={handleNotificationClick}
-                />
+                notifications={notifications}
+                onNotificationClick={handleNotificationClick}
+                onClose={() => setNotificationOpen(false)} // Close the dropdown
+              />
               )}
             </div>
 

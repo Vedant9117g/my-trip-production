@@ -1,8 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle, Bell } from "lucide-react";
+import { CheckCircle, Bell, X } from "lucide-react";
+import clsx from "clsx";
 
-const NotificationsDropdown = ({ notifications, onNotificationClick }) => {
+const NotificationsDropdown = ({
+  notifications,
+  onNotificationClick,
+  onClose,
+}) => {
   const scrollRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(false);
 
@@ -20,39 +25,51 @@ const NotificationsDropdown = ({ notifications, onNotificationClick }) => {
   }, []);
 
   return (
-    <div className="absolute right-4 top-14 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[1000]">
+    <div
+      className={`
+        z-[10]
+        bg-white dark:bg-gray-800
+        rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700
+        sm:absolute sm:right-4 sm:top-14 sm:w-80
+        fixed sm:rounded-xl inset-0 w-full h-full sm:h-auto sm:inset-auto
+      `}
+    >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
-        <Bell className="w-5 h-5 text-blue-500" />
-        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Notifications
-        </h2>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <Bell className="w-5 h-5 text-blue-500" />
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</h2>
+        </div>
+        {/* Close button (visible only on small screens) */}
+        <button
+          onClick={onClose}
+          className="sm:hidden text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white"
+        >
+          ✕
+        </button>
       </div>
-
+  
       {/* Scrollable Notification List */}
       <div
         ref={scrollRef}
-        className="max-h-96 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-700 dark:scrollbar-track-gray-900"
+        className="max-h-[calc(100vh-4rem)] sm:max-h-96 overflow-y-auto px-3 py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-700 dark:scrollbar-track-gray-900"
       >
         {notifications.length === 0 ? (
           <div className="p-4 text-gray-500 text-center">No notifications</div>
         ) : (
           notifications.map((notification) => (
-
-
             <div
               key={notification._id}
-              className="bg-gray-50 dark:bg-gray-700 shadow-xl shadow-gray-300 dark:shadow-black/40 rounded-lg mb-3  transition hover:shadow-2xl hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer relative z-20"
+              className="bg-gray-50 dark:bg-gray-700 shadow-xl shadow-gray-300 dark:shadow-black/40 rounded-lg mb-3 transition hover:shadow-2xl hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer relative z-20"
               onClick={() => onNotificationClick(notification)}
             >
-
-              <div className=" flex ">
-                {/* Icon with background */}
+              <div className="flex">
+                {/* Icon */}
                 <div className="bg-green-100 dark:bg-gray-900 flex items-center justify-center p-2 rounded-md">
                   <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-300" />
                 </div>
-
-                {/* Message with separate background */}
+  
+                {/* Message */}
                 <div className="flex-1 bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
                   <p className="text-sm text-gray-800 dark:text-gray-100">
                     {notification.message}
@@ -64,12 +81,10 @@ const NotificationsDropdown = ({ notifications, onNotificationClick }) => {
                   </span>
                 </div>
               </div>
-
             </div>
-
           ))
         )}
-
+  
         {/* End Message */}
         {notifications.length > 0 && isAtBottom && (
           <div className="text-center py-4 text-xs text-gray-400 dark:text-gray-500">
@@ -79,6 +94,7 @@ const NotificationsDropdown = ({ notifications, onNotificationClick }) => {
       </div>
     </div>
   );
+  
 };
 
 export default NotificationsDropdown;

@@ -86,7 +86,7 @@ const InstantRideDetail = () => {
         status: "completed",
       });
 
-      navigate("/"); // Redirect to the home page
+      navigate("/captain"); // Redirect to the home page
 
     } catch (error) {
       console.error("Error completing ride:", error);

@@ -12,7 +12,7 @@ const RideCard = ({ ride, userRole, onRideUpdate }) => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/start",
+        "https://my-trip-production-1.onrender.com/api/rides/start",
         { rideId: ride._id, otp },
         {
           headers: {
@@ -35,7 +35,7 @@ const RideCard = ({ ride, userRole, onRideUpdate }) => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/cancel",
+        "https://my-trip-production-1.onrender.com/api/rides/cancel",
         {
           rideId: ride._id,
           reason,
@@ -65,7 +65,7 @@ const RideCard = ({ ride, userRole, onRideUpdate }) => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/complete",
+        "https://my-trip-production-1.onrender.com/api/rides/complete",
         { rideId: ride._id },
         {
           headers: {

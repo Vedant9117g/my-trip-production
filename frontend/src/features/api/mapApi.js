@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const MAP_API = "http://localhost:5000/api/maps/";
+const MAP_API = "https://my-trip-production-1.onrender.com/api/maps/";
 
 export const mapApi = createApi({
   reducerPath: "mapApi",

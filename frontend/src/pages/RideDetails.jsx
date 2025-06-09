@@ -33,7 +33,7 @@ const RideDetails = () => {
       try {
         const token = localStorage.getItem("authToken");
         const response = await axios.get(
-          `http://localhost:5000/api/rides/${id}`,
+          `https://my-trip-production-1.onrender.com/api/rides/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
@@ -60,7 +60,7 @@ const RideDetails = () => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/start",
+        "https://my-trip-production-1.onrender.com/api/rides/start",
         { rideId: ride._id, otp },
         {
           headers: {
@@ -83,7 +83,7 @@ const RideDetails = () => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/cancel",
+        "https://my-trip-production-1.onrender.com/api/rides/cancel",
         {
           rideId: ride._id,
           reason,
@@ -113,7 +113,7 @@ const RideDetails = () => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/complete",
+        "https://my-trip-production-1.onrender.com/api/rides/complete",
         { rideId: ride._id },
         {
           headers: {
@@ -139,7 +139,7 @@ const RideDetails = () => {
     try {
       const token = localStorage.getItem("authToken");
       const res = await axios.post(
-        `http://localhost:5000/api/rides/${id}/book`,
+        `https://my-trip-production-1.onrender.com/api/rides/${id}/book`,
         { seats: seatsToBook },
         {
           headers: { Authorization: `Bearer ${token}` },

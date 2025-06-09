@@ -112,7 +112,7 @@ const MyRides = () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.get(
-        `http://localhost:5000/api/rides/${ride._id}`, // Fetch full ride details
+        `https://my-trip-production-1.onrender.com/api/rides/${ride._id}`, // Fetch full ride details
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,

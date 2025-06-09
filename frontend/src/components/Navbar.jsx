@@ -42,7 +42,7 @@ const Navbar = () => {
 
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/notifications",
+        "https://my-trip-production-1.onrender.com/api/notifications",
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -59,7 +59,7 @@ const Navbar = () => {
       try {
         const token = localStorage.getItem("authToken");
         const response = await axios.get(
-          `http://localhost:5000/api/rides/${notification.rideId}`,
+          `https://my-trip-production-1.onrender.com/api/rides/${notification.rideId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,

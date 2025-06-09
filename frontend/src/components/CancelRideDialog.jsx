@@ -51,7 +51,7 @@ const CancelRideDialog = ({
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/cancel",
+        "https://my-trip-production-1.onrender.com/api/rides/cancel",
         { rideId, reason: selectedReason },
         {
           headers: {

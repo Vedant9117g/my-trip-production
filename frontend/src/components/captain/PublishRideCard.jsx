@@ -50,7 +50,7 @@ const PublishRideCard = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/rides/create",
+        "https://my-trip-production-1.onrender.com/api/rides/create",
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },

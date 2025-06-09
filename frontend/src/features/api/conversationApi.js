@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const MESSAGE_API = "http://localhost:5000/api/messages/";
+const MESSAGE_API = "https://my-trip-production-1.onrender.com/api/messages/";
 
 export const conversationApi = createApi({
   reducerPath: "conversationApi",

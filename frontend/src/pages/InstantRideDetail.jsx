@@ -34,7 +34,7 @@ const InstantRideDetail = () => {
     try {
       setIsStartingRide(true);
       const response = await axios.post(
-        "http://localhost:5000/api/rides/start",
+        "https://my-trip-production-1.onrender.com/api/rides/start",
         { rideId: rideDetails._id, otp },
         {
           headers: {
@@ -67,7 +67,7 @@ const InstantRideDetail = () => {
   const handleCompleteRide = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/rides/complete",
+        "https://my-trip-production-1.onrender.com/api/rides/complete",
         { rideId: rideDetails._id },
         {
           headers: {

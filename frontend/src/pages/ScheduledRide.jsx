@@ -26,7 +26,7 @@ const ScheduledRide = () => {
       }
 
       try {
-        const response = await axios.get("http://localhost:5000/api/rides/search-scheduled", {
+        const response = await axios.get("https://my-trip-production-1.onrender.com/api/rides/search-scheduled", {
           params: { origin, destination, date },
           headers: {
             Authorization: `Bearer ${token}`,

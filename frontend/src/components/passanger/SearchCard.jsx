@@ -77,7 +77,7 @@ const SearchCard = () => {
     if (!input) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/maps/suggestions?input=${input}`
+        `https://my-trip-production-1.onrender.com/api/maps/suggestions?input=${input}`
       );
       const data = await res.json();
       setSuggestions(data);
@@ -116,7 +116,7 @@ const SearchCard = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/rides/fare?origin=${encodeURIComponent(
+        `https://my-trip-production-1.onrender.com/api/rides/fare?origin=${encodeURIComponent(
           origin
         )}&destination=${encodeURIComponent(destination)}`,
         {
@@ -142,7 +142,7 @@ const SearchCard = () => {
 
     // Create ride with selected vehicle type
     try {
-      const res = await fetch("http://localhost:5000/api/rides/create", {
+      const res = await fetch("https://my-trip-production-1.onrender.com/api/rides/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -215,7 +215,7 @@ const SearchCard = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/rides/create", {
+      const res = await fetch("https://my-trip-production-1.onrender.com/api/rides/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -66,7 +66,7 @@ const Profile = () => {
 
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/rides/my-ridesss",
+          "https://my-trip-production-1.onrender.com/api/rides/my-ridesss",
           {
             headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,

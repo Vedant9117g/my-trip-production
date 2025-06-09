@@ -67,7 +67,7 @@ const CaptainHome = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:5000/api/rides/${ride._id}/accept`,
+        `https://my-trip-production-1.onrender.com/api/rides/${ride._id}/accept`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -14,6 +14,12 @@ const rideRoutes = require("./routes/rideRoutes");
 const notificationRoutes = require("./routes/notificationRoutes"); // Import notification routes
 const messageRoutes = require("./routes/messageRoute"); // Import message routes
 
+const path = require("path");
+
+const _dirname = path.resolve(); // Get the current directory
+
+
+
 connectDB();
 
 const app = express();
@@ -48,8 +54,14 @@ app.use("/api/rides", rideRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes); // Add message routes
 
-app.get("/", (req, res) => {
-  res.send("Ride Finder API is running...");
+// app.get("/", (req, res) => {
+//   res.send("Ride Finder API is running...");
+// });
+
+app.use(express.static(path.join(_dirname, "/frontend/dist"))); // Serve static files from the public directory
+
+app.get("*", (_, res) => {
+  res.sendFile(path.join(_dirname, "/frontend/dist/index.html"));
 });
 
 const PORT = process.env.PORT || 5000;

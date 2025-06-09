@@ -225,7 +225,10 @@ const RideDetailsDialog = ({ ride, onClose, loggedInUser }) => {
             Close
           </button>
           <button
-            onClick={() => navigate(`/ride/${ride._id}`)}
+            onClick={() => {
+              onClose(); // Close the dialog
+              navigate(`/ride/${ride._id}`); // Navigate to the ride details page
+            }}
             className="inline-block px-4 py-2 rounded-lg text-sm font-medium bg-gray-600 text-white hover:bg-gray-700 transition"
           >
             View More

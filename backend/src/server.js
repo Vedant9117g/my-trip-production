@@ -22,8 +22,8 @@ const server = http.createServer(app); // Initialize the server here
 const io = initializeSocket(server); // Pass the server to initializeSocket
 
 const allowedOrigins = [
-  "http://localhost:5174", // Local development
-  "https://86gwq826-5174.inc1.devtunnels.ms", // Forwarded URL
+  "http://localhost:5173", // Local development
+  "https://86gwq826-5173.inc1.devtunnels.ms", // Forwarded URL
 ];
 
 app.use(

@@ -5,6 +5,7 @@ import { useLoadUserQuery } from "../features/api/authApi"; // Import useLoadUse
 import CancelRideDialog from "../components/CancelRideDialog";
 import {
   UserIcon,
+  AlertCircleIcon,
   UsersIcon,
   PhoneIcon,
   MailIcon,

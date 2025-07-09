@@ -6,13 +6,15 @@ import MainLayout from "./layout/MainLayout";
 import { ThemeProvider } from "./components/ThemeProvider";
 import Profile from "./pages/Profile";
 import { useLoadUserQuery } from "./features/api/authApi";
-import Home from "./pages/Home";
+// import Home from "./pages/Home";
 import ScheduledRide from "./pages/ScheduledRide";
 import RideDetails from "./pages/RideDetails"; // ✅ Import the ride details component
 import CaptainHome from "./pages/CaptainHome";
 import WaitingForDriver from "./components/passanger/WaitingForDriver"; // ✅ Import the new WaitingForDriver component
 import InstantRideDetail from "./pages/InstantRideDetail";
 import MyRides from "./pages/MyRides";
+import Landing from "./pages/Landing";
+import CaptainDashboard from "./pages/CaptainDashboard";
 
 const appRouter = createBrowserRouter([
   {
@@ -21,7 +23,11 @@ const appRouter = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <Home />,
+        element: <Landing/>,
+      },
+      {
+        path: "/dashboard",
+        element: <CaptainDashboard/>,
       },
       {
         path: "login",

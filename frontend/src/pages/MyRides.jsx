@@ -29,69 +29,69 @@ const MyRides = () => {
 
   const user = useSelector((state) => state.auth.user);
 
-  const fetchRides = async (
-    filtersToApply = {},
-    sortParam = { field: "", order: "" }
-  ) => {
-    try {
-      setLoading(true);
-      setError(null);
+ const fetchRides = async (
+  filtersToApply = {},
+  sortParam = { field: "", order: "" }
+) => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        setError("User not authenticated.");
-        setLoading(false);
-        return;
-      }
-
-      const validFilters = Object.fromEntries(
-        Object.entries(filtersToApply).filter(([_, value]) => value)
-      );
-
-      const queryParams = new URLSearchParams(validFilters).toString();
-      const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/rides/my-rides`;
-      const url = queryParams ? `${baseUrl}?${queryParams}` : baseUrl;
-
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
-
-      let ridesData = response.data.rides || [];
-
-      // Apply sorting
-      if (sortParam.field) {
-        ridesData = ridesData.sort((a, b) => {
-          const fieldA =
-            sortParam.field === "fare"
-              ? a.finalFare || 0
-              : new Date(a.departureTime);
-          const fieldB =
-            sortParam.field === "fare"
-              ? b.finalFare || 0
-              : new Date(b.departureTime);
-
-          if (sortParam.order === "asc") {
-            return fieldA - fieldB;
-          } else if (sortParam.order === "desc") {
-            return fieldB - fieldA;
-          }
-          return 0;
-        });
-      }
-
-      setRides(ridesData);
-      setFilteredRides(ridesData);
-    } catch (error) {
-      console.error(
-        "Error fetching rides:",
-        error.response?.data || error.message
-      );
-      setError("Failed to fetch rides. Please try again later.");
-    } finally {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      setError("User not authenticated.");
       setLoading(false);
+      return;
     }
-  };
+
+    const validFilters = Object.fromEntries(
+      Object.entries(filtersToApply).filter(([_, value]) => value)
+    );
+
+    const queryParams = new URLSearchParams(validFilters).toString();
+    const baseUrl = "https://my-trip-production-1.onrender.com/api/rides/my-rides";
+    const url = queryParams ? `${baseUrl}?${queryParams}` : baseUrl;
+
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true,
+    });
+
+    let ridesData = response.data.rides || [];
+
+    // Apply sorting
+    if (sortParam.field) {
+      ridesData = ridesData.sort((a, b) => {
+        const fieldA =
+          sortParam.field === "fare"
+            ? a.finalFare || 0
+            : new Date(a.departureTime);
+        const fieldB =
+          sortParam.field === "fare"
+            ? b.finalFare || 0
+            : new Date(b.departureTime);
+
+        if (sortParam.order === "asc") {
+          return fieldA - fieldB;
+        } else if (sortParam.order === "desc") {
+          return fieldB - fieldA;
+        }
+        return 0;
+      });
+    }
+
+    setRides(ridesData);
+    setFilteredRides(ridesData);
+  } catch (error) {
+    console.error(
+      "Error fetching rides:",
+      error.response?.data || error.message
+    );
+    setError("Failed to fetch rides. Please try again later.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchRides(); // Load all rides initially

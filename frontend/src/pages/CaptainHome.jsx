@@ -1,89 +1,113 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
+import { Typewriter } from "react-simple-typewriter";
+import { useDispatch } from "react-redux";
+import { useLoadUserQuery } from "../features/api/authApi";
+import { SocketContext } from "../context/SocketContext";
+import { setRideDetails } from "@/features/api/rideSlice";
+import { toast } from "sonner";
+import axios from "axios";
+
 import PublishRideCard from "@/components/captain/PublishRideCard";
 import RideRequestPopup from "@/components/captain/RideRequestPopup";
-import { SocketContext } from "../context/SocketContext";
-import { useLoadUserQuery } from "../features/api/authApi";
-import axios from "axios";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { Car, ClipboardList, Users, DollarSign } from "lucide-react";
+import AIChatBot from "./AiChatBot";
+import { features, steps, testimonials } from "./landingData";
+import { FaGift, FaPercent, FaStar, FaBolt } from "react-icons/fa";
 
-import { useDispatch } from "react-redux";
-import { setRideDetails } from "@/features/api/rideSlice";
+// Register GSAP plugin
+
+const offers = [
+  {
+    title: "First Ride Free",
+    desc: "Enjoy your first ride absolutely free up to ₹100!",
+    icon: <FaGift className="text-pink-500 text-3xl" />,
+    color: "from-pink-100 to-pink-200 dark:from-pink-900 dark:to-pink-800",
+  },
+  {
+    title: "Refer & Earn",
+    desc: "Refer friends and earn ₹50 ride credits for each signup.",
+    icon: <FaPercent className="text-blue-500 text-3xl" />,
+    color: "from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800",
+  },
+  {
+    title: "5-Star Cashback",
+    desc: "Get 10% cashback on every 5-star rated ride.",
+    icon: <FaStar className="text-yellow-400 text-3xl" />,
+    color: "from-yellow-100 to-yellow-200 dark:from-yellow-900 dark:to-yellow-800",
+  },
+  {
+    title: "Lightning Deals",
+    desc: "Grab limited-time discounts on select routes every day.",
+    icon: <FaBolt className="text-purple-500 text-3xl" />,
+    color: "from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800",
+  },
+];
+
+gsap.registerPlugin(ScrollTrigger);
+
+function ScrollAnimatedSection({ children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    gsap.fromTo(
+      el,
+      { opacity: 0, y: 100 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 1,
+        scrollTrigger: {
+          trigger: el,
+          start: "top 85%",
+          toggleActions: "play none none none",
+        },
+      }
+    );
+  }, []);
+  return <div ref={ref}>{children}</div>;
+}
 
 const CaptainHome = () => {
-  const { socket } = useContext(SocketContext); // Access the socket instance
+  const { socket } = useContext(SocketContext);
   const { data: userData, isLoading } = useLoadUserQuery();
-  const [ride, setRide] = useState(null); // Track the ride for the popup
-  const navigate = useNavigate();
+  const [ride, setRide] = useState(null);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Emit the "join" event with the userId when the component mounts
     if (!isLoading && userData?.user) {
-      const userId = userData.user._id; // Extract userId from the fetched user data
+      const userId = userData.user._id;
       if (userId && !socket.hasEmittedJoin) {
-        socket.emit("join", { userId }); // Emit the join event with userId
-        socket.hasEmittedJoin = true; // Mark that the join event has been emitted
-        console.log("Emitted 'join' event with userId:", userId);
+        socket.emit("join", { userId });
+        socket.hasEmittedJoin = true;
       }
     }
-
-    // Listen for server responses
-    socket.on("joinSuccess", (message) => {
-      console.log("Server response to join:", message);
-    });
-
-    return () => {
-      // Clean up the event listener
-      socket.off("joinSuccess");
-    };
+    socket.on("joinSuccess", (msg) => console.log(msg));
+    return () => socket.off("joinSuccess");
   }, [socket, isLoading, userData]);
 
   useEffect(() => {
-    // Ensure the "new-ride" event listener is registered only once
-    const handleNewRide = (data) => {
-      console.log("New ride received:", data);
-      setRide(data);
-    };
-
-    // Remove any existing listener before adding a new one
+    const handleNewRide = (data) => setRide(data);
     socket.off("new-ride");
     socket.on("new-ride", handleNewRide);
-
-    // Cleanup the event listener when the component unmounts
-    return () => {
-      socket.off("new-ride", handleNewRide);
-    };
+    return () => socket.off("new-ride", handleNewRide);
   }, [socket]);
 
   const handleAcceptRide = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      if (!token) {
-        toast.error("Unauthorized. Redirecting to login...");
-        navigate("/login");
-        return;
-      }
-
-      const response = await axios.post(
+      if (!token) return navigate("/login");
+      const res = await axios.post(
         `https://my-trip-production-1.onrender.com/api/rides/${ride._id}/accept`,
         {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        }
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
       );
-
       toast.success("Ride accepted successfully!");
-      console.log("Ride accepted:", response.data.ride);
-
-      // Dispatch ride details to Redux
-      dispatch(setRideDetails(response.data.ride));
-      // Navigate to InstantRideDetail page
+      dispatch(setRideDetails(res.data.ride));
       navigate("/instant-ride-detail");
-      // Emit rideAccepted event to the passenger
-
       socket.emit("rideAccepted", {
         rideId: ride._id,
         captain: {
@@ -92,103 +116,99 @@ const CaptainHome = () => {
           phone: userData.user.phone,
         },
       });
-
       setRide(null);
-    } catch (error) {
-      console.error("Error accepting ride:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to accept the ride."
-      );
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to accept ride");
     }
   };
 
   const handleRejectRide = () => {
-    console.log("Ride rejected:", ride);
-    toast.error("Ride rejected!");
-    setRide(null); // Clear the popup after rejecting
+    toast.error("Ride rejected");
+    setRide(null);
   };
 
-  useEffect(() => {
-    if (!isLoading && userData?.user) {
-      console.log("User socketId:", userData.user.socketId); // Log the socketId
-    }
-  }, [isLoading, userData]);
-
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      {/* Hero Section */}
-      <header className="w-full py-16 text-center bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-gray-900 dark:to-gray-800 text-white">
-        <h1 className="text-5xl font-bold mb-4">
-          Welcome to Captain Dashboard
-        </h1>
-        <p className="text-lg font-medium">
-          Manage your rides, track requests, and earn rewards. Your journey
-          starts here!
-        </p>
-        {/* Publish Ride Section */}
-        <section className="flex justify-center py-16 px-6">
+    <div className="bg-gradient-to-b from-slate-100 to-blue-100 dark:from-gray-950 dark:to-gray-900 min-h-screen font-plus-jakarta-sans transition-colors duration-300">
+      <section className="py-20 px-6 text-center bg-gradient-to-r from-[#e3eafc] to-[#b6c6e6] dark:from-gray-950 dark:to-gray-900">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <h1 className="text-5xl font-extrabold mb-4 dark:text-white">
+            Welcome Captain,
+            <span className="text-blue-600 dark:text-blue-400">
+              <Typewriter
+                words={["Publish Rides", "Accept Requests", "Earn Rewards"]}
+                loop
+                cursor
+                cursorStyle="|"
+                typeSpeed={70}
+                deleteSpeed={50}
+                delaySpeed={1500}
+              />
+            </span>
+          </h1>
+          <p className="text-lg text-blue-900 dark:text-blue-100 max-w-xl mx-auto">
+            Manage your rides efficiently and earn while helping people commute
+            safely.
+          </p>
+        </motion.div>
+        <div className="mt-12 flex justify-center">
           <PublishRideCard />
-        </section>
-      </header>
-
-      {/* Features Section */}
-      <section className="w-full max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-4xl font-bold text-center mb-8">
-          Why Be a Captain?
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Feature 1 */}
-          <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <ClipboardList className="w-12 h-12 text-blue-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Manage Rides</h3>
-            <p className="text-center">
-              Easily publish and manage your rides. Stay in control of your
-              schedule and preferences.
-            </p>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <Users className="w-12 h-12 text-green-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Track Requests</h3>
-            <p className="text-center">
-              Get real-time ride requests and accept or reject them with ease.
-            </p>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <DollarSign className="w-12 h-12 text-purple-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Earn Rewards</h3>
-            <p className="text-center">
-              Earn money and rewards for every ride you complete. Drive smarter,
-              earn better.
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* Call-to-Action Section */}
-      <section className="w-full bg-indigo-700 dark:bg-gray-900 py-16 text-center">
-        <h2 className="text-4xl font-bold mb-4">Ready to Publish Your Ride?</h2>
-        <p className="text-lg mb-8">
-          Start your journey as a captain today and make a difference in the way
-          people travel.
-        </p>
-        <button
-          onClick={() => navigate("/publish")}
-          className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold text-lg transition duration-200"
-        >
-          Publish a Ride
-        </button>
+      {/* Features Section */}
+      <section className="py-16 px-6 max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+        {features.map((feature, idx) => (
+          <ScrollAnimatedSection key={idx}>
+            <div className="text-center bg-white/90 dark:bg-gray-950/90 p-6 rounded-xl shadow-lg hover:shadow-2xl hover:scale-105 transition border border-blue-100 dark:border-gray-800">
+              <div className="text-4xl mb-3 animate-pulse">{feature.icon}</div>
+              <h3 className="font-bold text-blue-700 dark:text-blue-300 text-lg mb-1">
+                {feature.title}
+              </h3>
+              <p className="text-slate-600 dark:text-blue-100 text-sm">
+                {feature.desc}
+              </p>
+            </div>
+          </ScrollAnimatedSection>
+        ))}
       </section>
 
+      {/* Offers Section */}
+      <section className="py-16 px-6 bg-gradient-to-b from-white/90 to-blue-100/70 dark:from-gray-950 dark:to-gray-900">
+        <h2 className="text-3xl font-bold text-center text-blue-800 dark:text-blue-100 mb-12">
+          Exclusive Captain Offers
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 max-w-6xl mx-auto">
+          {offers.map((offer, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 60 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: i * 0.1 }}
+              className={`rounded-2xl shadow-xl p-6 flex flex-col items-center text-center bg-gradient-to-br ${offer.color} border border-blue-100 dark:border-gray-800`}
+            >
+              <div className="mb-4">{offer.icon}</div>
+              <h3 className="font-bold text-blue-700 dark:text-blue-200 text-lg mb-2">
+                {offer.title}
+              </h3>
+              <p className="text-blue-900 dark:text-blue-100">{offer.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* AI Chat Bot */}
+      <AIChatBot />
+
       {/* Ride Request Popup */}
-      <RideRequestPopup
-        ride={ride}
-        onAccept={handleAcceptRide}
-        onReject={handleRejectRide}
-      />
+      <RideRequestPopup ride={ride} onAccept={handleAcceptRide} onReject={handleRejectRide} />
+
+      <footer className="py-6 text-center text-sm text-blue-700 dark:text-blue-200 bg-white/90 dark:bg-gray-950/95 border-t border-blue-100 dark:border-gray-800">
+        &copy; {new Date().getFullYear()} MyTrip. All rights reserved.
+      </footer>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import LocationSearchPanel from "./LocationSearchPanel";
 import { SocketContext } from "@/context/SocketContext";
@@ -20,7 +20,7 @@ const SearchCard = () => {
   const dispatch = useDispatch();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [rideType, setRideType] = useState("scheduled");
+  const [rideType, setRideType] = useState("instant");
   const [vehicleType, setVehicleType] = useState(""); // Vehicle type for both scheduled and instant rides
   const [seats, setSeats] = useState(1);
   const [date, setDate] = useState("");
